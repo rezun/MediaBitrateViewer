@@ -1,1 +1,1 @@
-@~/Code/csharp-rules.md
+@docs/coding-style.md
