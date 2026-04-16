@@ -15,7 +15,10 @@ public sealed class AppVersionProvider : IAppVersionProvider
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion;
         if (!string.IsNullOrWhiteSpace(informational))
-            return informational;
+        {
+            var plusIndex = informational.IndexOf('+', StringComparison.Ordinal);
+            return plusIndex >= 0 ? informational[..plusIndex] : informational;
+        }
 
         var assemblyVersion = assembly.GetName().Version?.ToString();
         return string.IsNullOrWhiteSpace(assemblyVersion) ? "unknown" : assemblyVersion;
