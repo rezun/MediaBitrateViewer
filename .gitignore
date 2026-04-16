@@ -428,3 +428,10 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# macOS Finder metadata
+.DS_Store
+
+# Claude Code local settings
+.claude/
+claude-plans/
