@@ -104,7 +104,6 @@ internal sealed class FakeCache : IAnalysisCache
     private readonly Dictionary<string, ProbedMediaFile> _probes = new();
     private readonly Dictionary<string, CachedFrameAnalysis> _frames = new();
 
-    public int ClearStreamCalls { get; private set; }
     public int ClearFileCalls { get; private set; }
 
     private static string ProbeKey(FileFingerprint fp) => fp.ToCacheKey();
@@ -127,13 +126,6 @@ internal sealed class FakeCache : IAnalysisCache
 
     public void SeedCompletedFrameAnalysis(FileFingerprint fingerprint, int videoStreamIndex, IReadOnlyList<FrameRecord> frames)
         => _frames[FramesKey(fingerprint, videoStreamIndex)] = new CachedFrameAnalysis(fingerprint, videoStreamIndex, frames, DateTimeOffset.UnixEpoch);
-
-    public ValueTask ClearStreamAsync(FileFingerprint fingerprint, int videoStreamIndex)
-    {
-        ClearStreamCalls++;
-        _frames.Remove(FramesKey(fingerprint, videoStreamIndex));
-        return ValueTask.CompletedTask;
-    }
 
     public ValueTask ClearFileAsync(FileFingerprint fingerprint)
     {

@@ -109,25 +109,6 @@ public sealed class AnalysisCacheTests : IDisposable
     }
 
     [Fact]
-    public async Task ClearStream_RemovesOnlyThatStream()
-    {
-        await using (var w0 = _cache.BeginFrameAnalysis(_fingerprint, 0, TimeProvider.System))
-        {
-            await w0.AppendAsync(new FrameRecord { DurationSeconds = 0.04, PacketSizeBytes = 100 }, CancellationToken.None);
-            await w0.MarkCompleteAsync(CancellationToken.None);
-        }
-        await using (var w1 = _cache.BeginFrameAnalysis(_fingerprint, 1, TimeProvider.System))
-        {
-            await w1.AppendAsync(new FrameRecord { DurationSeconds = 0.04, PacketSizeBytes = 200 }, CancellationToken.None);
-            await w1.MarkCompleteAsync(CancellationToken.None);
-        }
-
-        await _cache.ClearStreamAsync(_fingerprint, 0);
-        Assert.Null(await _cache.TryGetCompleteFrameAnalysisAsync(_fingerprint, 0, CancellationToken.None));
-        Assert.NotNull(await _cache.TryGetCompleteFrameAnalysisAsync(_fingerprint, 1, CancellationToken.None));
-    }
-
-    [Fact]
     public async Task ClearFile_RemovesEverything()
     {
         await _cache.SaveProbeAsync(MakeProbe(), CancellationToken.None);

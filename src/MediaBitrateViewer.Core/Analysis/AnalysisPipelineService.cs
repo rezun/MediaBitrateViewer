@@ -104,9 +104,6 @@ public sealed class AnalysisPipelineService : IAnalysisPipelineService
         }
     }
 
-    public ValueTask ClearStreamCacheAsync(FileFingerprint fingerprint, int videoStreamIndex)
-        => _cache.ClearStreamAsync(fingerprint, videoStreamIndex);
-
     public ValueTask ClearFileCacheAsync(FileFingerprint fingerprint)
         => _cache.ClearFileAsync(fingerprint);
 }

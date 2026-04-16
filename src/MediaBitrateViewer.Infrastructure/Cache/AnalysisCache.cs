@@ -126,13 +126,6 @@ public sealed class AnalysisCache : IAnalysisCache
             timeProvider);
     }
 
-    public ValueTask ClearStreamAsync(FileFingerprint fingerprint, int videoStreamIndex)
-    {
-        SafeDelete(ManifestPath(fingerprint, videoStreamIndex));
-        SafeDelete(FramesPath(fingerprint, videoStreamIndex));
-        return ValueTask.CompletedTask;
-    }
-
     public ValueTask ClearFileAsync(FileFingerprint fingerprint)
     {
         var dir = FileDirectory(fingerprint);
@@ -142,11 +135,5 @@ public sealed class AnalysisCache : IAnalysisCache
             catch (IOException ex) { _logger.LogWarning(ex, "Failed to delete cache dir {Dir}", dir); }
         }
         return ValueTask.CompletedTask;
-    }
-
-    private void SafeDelete(string path)
-    {
-        try { if (File.Exists(path)) File.Delete(path); }
-        catch (IOException ex) { _logger.LogWarning(ex, "Failed to delete {Path}", path); }
     }
 }

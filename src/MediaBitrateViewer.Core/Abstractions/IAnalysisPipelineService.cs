@@ -26,7 +26,6 @@ public interface IAnalysisPipelineService
         IFrameAnalysisProgressObserver observer,
         CancellationToken cancellationToken);
 
-    ValueTask ClearStreamCacheAsync(FileFingerprint fingerprint, int videoStreamIndex);
     ValueTask ClearFileCacheAsync(FileFingerprint fingerprint);
 }
 

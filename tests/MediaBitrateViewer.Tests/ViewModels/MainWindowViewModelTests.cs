@@ -148,20 +148,6 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public async Task ClearCurrentStreamCache_DelegatesToCache()
-    {
-        var harness = new MainWindowViewModelHarness();
-        var vm = harness.Build();
-        await vm.InitializeAsync(CancellationToken.None);
-        await vm.LoadFileAsync("/tmp/sample.mp4");
-        await MainWindowViewModelHarness.WaitForStatusAsync(vm, WorkflowStatus.Ready);
-
-        await vm.ClearCurrentStreamCacheCommand.ExecuteAsync(null);
-
-        Assert.Equal(1, harness.Cache.ClearStreamCalls);
-    }
-
-    [Fact]
     public async Task ClearCurrentFileCache_DelegatesToCache()
     {
         var harness = new MainWindowViewModelHarness();

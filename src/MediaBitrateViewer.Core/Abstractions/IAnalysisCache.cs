@@ -14,7 +14,6 @@ public interface IAnalysisCache
 
     IFrameCacheWriter BeginFrameAnalysis(FileFingerprint fingerprint, int videoStreamIndex, TimeProvider timeProvider);
 
-    ValueTask ClearStreamAsync(FileFingerprint fingerprint, int videoStreamIndex);
     ValueTask ClearFileAsync(FileFingerprint fingerprint);
 }
 

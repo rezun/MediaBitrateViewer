@@ -380,20 +380,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
 
     private bool CanReload() => FilePath is not null;
 
-    [RelayCommand(CanExecute = nameof(CanClearCurrentStreamCache))]
-    private async Task ClearCurrentStreamCacheAsync()
-    {
-        if (ProbedFile is null || SelectedStream is null) return;
-        await _pipeline.ClearStreamCacheAsync(ProbedFile.Fingerprint, SelectedStream.Index);
-    }
-
-    private bool CanClearCurrentStreamCache() => ProbedFile is not null && SelectedStream is not null;
-
     [RelayCommand(CanExecute = nameof(CanClearCurrentFileCache))]
     private async Task ClearCurrentFileCacheAsync()
     {
-        if (ProbedFile is null) return;
+        if (ProbedFile is null || FilePath is null) return;
         await _pipeline.ClearFileCacheAsync(ProbedFile.Fingerprint);
+        await ReloadAsync();
     }
 
     private bool CanClearCurrentFileCache() => ProbedFile is not null;
@@ -473,7 +465,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         OnPropertyChanged(nameof(HasFile));
         ReloadCommand.NotifyCanExecuteChanged();
         ClearCurrentFileCacheCommand.NotifyCanExecuteChanged();
-        ClearCurrentStreamCacheCommand.NotifyCanExecuteChanged();
     }
 
     private void PersistPreferences()

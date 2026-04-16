@@ -92,20 +92,13 @@
 
             <Border Classes="toolbar-separator" />
 
-            <!-- Cache actions -->
-            <Button ToolTip.Tip="Cache actions">
+            <!-- Clear cache for current file -->
+            <Button Command="{Binding ClearCurrentFileCacheCommand}"
+                    ToolTip.Tip="Clear cache for current file">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <i:Icon Value="mdi-database-cog-outline" />
-                    <TextBlock Text="Cache" />
+                    <i:Icon Value="mdi-database-remove-outline" />
+                    <TextBlock Text="Clear cache" />
                 </StackPanel>
-                <Button.Flyout>
-                    <MenuFlyout>
-                        <MenuItem Header="Clear cache for current stream"
-                                  Command="{Binding ClearCurrentStreamCacheCommand}" />
-                        <MenuItem Header="Clear cache for current file"
-                                  Command="{Binding ClearCurrentFileCacheCommand}" />
-                    </MenuFlyout>
-                </Button.Flyout>
             </Button>
 
         </StackPanel>
