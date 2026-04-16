@@ -1,0 +1,73 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <!-- Surface layers: 0=base, 1=panels/cards, 2=inputs/wells -->
+            <SolidColorBrush x:Key="Surface0Brush" Color="#F4F5F7" />
+            <SolidColorBrush x:Key="Surface1Brush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="Surface2Brush" Color="#EAECEF" />
+            <SolidColorBrush x:Key="ChromeBrush" Color="#FFFFFF" />
+
+            <!-- Text -->
+            <SolidColorBrush x:Key="TextPrimaryBrush" Color="#0D1117" />
+            <SolidColorBrush x:Key="TextSecondaryBrush" Color="#47525E" />
+            <SolidColorBrush x:Key="TextMutedBrush" Color="#6E7781" />
+            <SolidColorBrush x:Key="TextDisabledBrush" Color="#A8B2BD" />
+
+            <!-- Borders -->
+            <SolidColorBrush x:Key="BorderSubtleBrush" Color="#E1E4E8" />
+            <SolidColorBrush x:Key="BorderDefaultBrush" Color="#CDD2DA" />
+            <SolidColorBrush x:Key="BorderStrongBrush" Color="#9098A1" />
+
+            <!-- Accent -->
+            <SolidColorBrush x:Key="AccentBrush" Color="#0969DA" />
+            <SolidColorBrush x:Key="AccentSoftBrush" Color="#DDEAFD" />
+            <SolidColorBrush x:Key="FocusRingBrush" Color="#0969DA" />
+
+            <!-- Semantic -->
+            <SolidColorBrush x:Key="SuccessBrush" Color="#1A7F37" />
+            <SolidColorBrush x:Key="WarningBrush" Color="#9A6700" />
+            <SolidColorBrush x:Key="ErrorBrush" Color="#CF222E" />
+            <SolidColorBrush x:Key="InfoBrush" Color="#0969DA" />
+
+            <!-- Graph series -->
+            <SolidColorBrush x:Key="GraphSeriesBrush" Color="#1D4ED8" />
+            <SolidColorBrush x:Key="GraphCursorBrush" Color="#CF222E" />
+            <SolidColorBrush x:Key="GraphAxisBrush" Color="#6E7781" />
+            <SolidColorBrush x:Key="GraphGridBrush" Color="#E1E4E8" />
+            <SolidColorBrush x:Key="GraphBackgroundBrush" Color="#FFFFFF" />
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Dark">
+            <!-- Surface layers tuned to be informative-but-restful: NOT pure black -->
+            <SolidColorBrush x:Key="Surface0Brush" Color="#161B22" />
+            <SolidColorBrush x:Key="Surface1Brush" Color="#1C232C" />
+            <SolidColorBrush x:Key="Surface2Brush" Color="#252C36" />
+            <SolidColorBrush x:Key="ChromeBrush" Color="#1C232C" />
+
+            <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E6EDF3" />
+            <SolidColorBrush x:Key="TextSecondaryBrush" Color="#B4BEC8" />
+            <SolidColorBrush x:Key="TextMutedBrush" Color="#8A95A2" />
+            <SolidColorBrush x:Key="TextDisabledBrush" Color="#5A6470" />
+
+            <SolidColorBrush x:Key="BorderSubtleBrush" Color="#2A3038" />
+            <SolidColorBrush x:Key="BorderDefaultBrush" Color="#363D47" />
+            <SolidColorBrush x:Key="BorderStrongBrush" Color="#4A525C" />
+
+            <SolidColorBrush x:Key="AccentBrush" Color="#4493F8" />
+            <SolidColorBrush x:Key="AccentSoftBrush" Color="#1F3A5F" />
+            <SolidColorBrush x:Key="FocusRingBrush" Color="#4493F8" />
+
+            <SolidColorBrush x:Key="SuccessBrush" Color="#3FB950" />
+            <SolidColorBrush x:Key="WarningBrush" Color="#D29922" />
+            <SolidColorBrush x:Key="ErrorBrush" Color="#F85149" />
+            <SolidColorBrush x:Key="InfoBrush" Color="#4493F8" />
+
+            <SolidColorBrush x:Key="GraphSeriesBrush" Color="#79C0FF" />
+            <SolidColorBrush x:Key="GraphCursorBrush" Color="#F85149" />
+            <SolidColorBrush x:Key="GraphAxisBrush" Color="#8A95A2" />
+            <SolidColorBrush x:Key="GraphGridBrush" Color="#2A3038" />
+            <SolidColorBrush x:Key="GraphBackgroundBrush" Color="#161B22" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

@@ -1,0 +1,245 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:MediaBitrateViewer.Core.ViewModels;assembly=MediaBitrateViewer.Core"
+        xmlns:abs="clr-namespace:MediaBitrateViewer.Core.Abstractions;assembly=MediaBitrateViewer.Core"
+        xmlns:views="clr-namespace:MediaBitrateViewer.App.Views"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="780"
+        x:Class="MediaBitrateViewer.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding WindowTitle}"
+        Width="1280" Height="800"
+        MinWidth="980" MinHeight="620"
+        Background="{DynamicResource Surface0Brush}">
+
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Header="File">
+                <NativeMenuItem.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Header="Open File…"
+                                        Command="{Binding OpenFileCommand}"
+                                        Gesture="{OnPlatform Default='Ctrl+O', macOS='Cmd+O'}" />
+                        <NativeMenuItem Header="Open Recent">
+                            <NativeMenuItem.Menu>
+                                <NativeMenu />
+                            </NativeMenuItem.Menu>
+                        </NativeMenuItem>
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="Reload"
+                                        Command="{Binding ReloadCommand}"
+                                        Gesture="{OnPlatform Default='Ctrl+R', macOS='Cmd+R'}" />
+                    </NativeMenu>
+                </NativeMenuItem.Menu>
+            </NativeMenuItem>
+            <NativeMenuItem Header="View">
+                <NativeMenuItem.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Header="Reset Zoom"
+                                        Command="{Binding ResetZoomCommand}"
+                                        Gesture="{OnPlatform Default='Ctrl+0', macOS='Cmd+0'}" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="Theme">
+                            <NativeMenuItem.Menu>
+                                <NativeMenu>
+                                    <NativeMenuItem Header="System"
+                                                    ToggleType="Radio"
+                                                    IsChecked="{Binding IsThemeSystem}"
+                                                    Command="{Binding SetThemeCommand}"
+                                                    CommandParameter="{x:Static abs:ThemeMode.System}" />
+                                    <NativeMenuItem Header="Light"
+                                                    ToggleType="Radio"
+                                                    IsChecked="{Binding IsThemeLight}"
+                                                    Command="{Binding SetThemeCommand}"
+                                                    CommandParameter="{x:Static abs:ThemeMode.Light}" />
+                                    <NativeMenuItem Header="Dark"
+                                                    ToggleType="Radio"
+                                                    IsChecked="{Binding IsThemeDark}"
+                                                    Command="{Binding SetThemeCommand}"
+                                                    CommandParameter="{x:Static abs:ThemeMode.Dark}" />
+                                </NativeMenu>
+                            </NativeMenuItem.Menu>
+                        </NativeMenuItem>
+                    </NativeMenu>
+                </NativeMenuItem.Menu>
+            </NativeMenuItem>
+        </NativeMenu>
+    </NativeMenu.Menu>
+
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
+        <KeyBinding Gesture="Cmd+O" Command="{Binding OpenFileCommand}" />
+        <KeyBinding Gesture="Ctrl+R" Command="{Binding ReloadCommand}" />
+        <KeyBinding Gesture="Cmd+R" Command="{Binding ReloadCommand}" />
+        <KeyBinding Gesture="Ctrl+0" Command="{Binding ResetZoomCommand}" />
+        <KeyBinding Gesture="Cmd+0" Command="{Binding ResetZoomCommand}" />
+        <KeyBinding Gesture="Escape" Command="{Binding CancelAnalysisCommand}" />
+    </Window.KeyBindings>
+
+    <DockPanel LastChildFill="True">
+        <!-- Native menu bar (renders on Windows/Linux; invisible on macOS where the menu lives in the system bar) -->
+        <NativeMenuBar DockPanel.Dock="Top" />
+
+        <!-- Toolbar -->
+        <views:ToolbarView DockPanel.Dock="Top" />
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" Classes="statusbar">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           Classes="caption"
+                           VerticalAlignment="Center"
+                           Text="{Binding FfprobeVersionDisplay, FallbackValue='ffprobe not located'}" />
+                <TextBlock Grid.Column="1"
+                           Classes="caption"
+                           VerticalAlignment="Center"
+                           Text="{Binding Status}" />
+            </Grid>
+        </Border>
+
+        <!-- Main content area -->
+        <Grid ColumnDefinitions="*,8,320">
+            <!-- Center: graph + overlays -->
+            <Border Grid.Column="0"
+                    Margin="12,12,0,12"
+                    Classes="panel"
+                    Padding="0">
+                <DockPanel LastChildFill="True">
+                    <!-- Loading panel docked below graph -->
+                    <views:LoadingPanelView DockPanel.Dock="Bottom"
+                                            Margin="12"
+                                            DataContext="{Binding LoadingPanel}" />
+
+                    <Grid>
+                        <views:BitrateGraphView />
+
+                    <!-- Drop overlay -->
+                    <Border Classes="drop-overlay"
+                            Margin="20"
+                            IsVisible="False"
+                            x:Name="DropOverlay">
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="8">
+                            <TextBlock Classes="h1"
+                                       Text="Drop file to load"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Classes="caption"
+                                       Text="Multiple files open one window each."
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Idle hint -->
+                    <Border IsVisible="{Binding ShowIdleHint}"
+                            Background="{DynamicResource Surface1Brush}">
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="12"
+                                    MaxWidth="380">
+                            <TextBlock Classes="h1"
+                                       Text="No file loaded"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Classes="body"
+                                       Text="Drop a video file here, or use Open File to pick one. Each file opens in its own window."
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
+                            <Button Classes="accent"
+                                    Command="{Binding OpenFileCommand}"
+                                    HorizontalAlignment="Center"
+                                    Padding="14,8">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <i:Icon Value="mdi-folder-open-outline" />
+                                    <TextBlock Text="Open file…" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ffprobe missing -->
+                    <Border IsVisible="{Binding ShowFfprobeMissingError}"
+                            Background="{DynamicResource Surface1Brush}">
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="12"
+                                    MaxWidth="480">
+                            <i:Icon Value="mdi-alert-circle-outline"
+                                    FontSize="48"
+                                    Foreground="{DynamicResource ErrorBrush}"
+                                    HorizontalAlignment="Center" />
+                            <TextBlock Classes="h1"
+                                       Text="ffprobe not found"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Classes="body"
+                                       Text="{Binding ErrorMessage}"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Generic errors -->
+                    <Border IsVisible="{Binding ShowGenericError}"
+                            Background="{DynamicResource Surface1Brush}">
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="12"
+                                    MaxWidth="480">
+                            <i:Icon Value="mdi-alert-outline"
+                                    FontSize="40"
+                                    Foreground="{DynamicResource WarningBrush}"
+                                    HorizontalAlignment="Center" />
+                            <TextBlock Classes="h2"
+                                       Text="Could not analyze this file"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Classes="body"
+                                       Text="{Binding ErrorMessage}"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
+                            <Button Command="{Binding ReloadCommand}"
+                                    HorizontalAlignment="Center"
+                                    IsEnabled="{Binding HasFile}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <i:Icon Value="mdi-refresh" />
+                                    <TextBlock Text="Retry" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Partial-data badge -->
+                    <Border IsVisible="{Binding IsPartialData}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Margin="12"
+                            Padding="8,4"
+                            CornerRadius="3"
+                            Background="{DynamicResource WarningBrush}">
+                        <TextBlock Text="Partial data — analysis canceled"
+                                   Foreground="White"
+                                   FontSize="11"
+                                   FontWeight="SemiBold" />
+                    </Border>
+                    </Grid>
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Background="Transparent" />
+
+            <!-- Right sidebar -->
+            <ScrollViewer Grid.Column="2"
+                          Margin="0,12,12,12"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="12">
+                    <views:CursorReadoutView DataContext="{Binding CursorReadout}" />
+                    <views:StreamMetadataView DataContext="{Binding StreamMetadata}" />
+                    <views:StatisticsPanelView DataContext="{Binding Statistics}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</Window>

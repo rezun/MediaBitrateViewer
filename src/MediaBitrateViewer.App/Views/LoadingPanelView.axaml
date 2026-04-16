@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:MediaBitrateViewer.Core.ViewModels;assembly=MediaBitrateViewer.Core"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             x:Class="MediaBitrateViewer.App.Views.LoadingPanelView"
+             x:DataType="vm:LoadingPanelViewModel"
+             IsVisible="{Binding IsVisible}">
+    <Border Classes="panel"
+            Background="{DynamicResource Surface1Brush}"
+            HorizontalAlignment="Stretch">
+        <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <i:Icon Grid.Column="0" Value="mdi-progress-clock"
+                        FontSize="18"
+                        Foreground="{DynamicResource AccentBrush}"
+                        VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1"
+                           Margin="8,0,0,0"
+                           Classes="value"
+                           VerticalAlignment="Center"
+                           Text="{Binding Operation}" />
+                <TextBlock Grid.Column="2"
+                           Classes="caption mono"
+                           Text="{Binding FractionPercentText}"
+                           IsVisible="{Binding HasFractionalProgress}"
+                           VerticalAlignment="Center" />
+            </Grid>
+
+            <ProgressBar Minimum="0" Maximum="1"
+                         Value="{Binding FractionComplete, FallbackValue=0}"
+                         IsIndeterminate="{Binding !HasFractionalProgress}"
+                         Height="6" />
+
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <TextBlock Grid.Column="0" Classes="caption">
+                    <Run Text="Frames " />
+                    <Run Classes="mono" Text="{Binding FrameCountText}" />
+                </TextBlock>
+                <TextBlock Grid.Column="2" Classes="caption">
+                    <Run Text="At " />
+                    <Run Classes="mono" Text="{Binding TimestampText}" />
+                </TextBlock>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

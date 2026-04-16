@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:MediaBitrateViewer.Core.ViewModels;assembly=MediaBitrateViewer.Core"
+             x:Class="MediaBitrateViewer.App.Views.CursorReadoutView"
+             x:DataType="vm:CursorReadoutViewModel">
+    <Border Classes="panel">
+        <StackPanel Spacing="10">
+            <TextBlock Classes="h3" Text="Cursor" />
+            <StackPanel Classes="stat">
+                <TextBlock Classes="label" Text="Time" />
+                <TextBlock Classes="readout-value mono" Text="{Binding TimeText}" />
+            </StackPanel>
+            <StackPanel Classes="stat">
+                <TextBlock Classes="label" Text="Bitrate" />
+                <TextBlock Classes="readout-value mono" Text="{Binding BitrateText}" />
+            </StackPanel>
+            <StackPanel Classes="stat">
+                <TextBlock Classes="label" Text="Mode" />
+                <TextBlock Classes="value" Text="{Binding ModeText}" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

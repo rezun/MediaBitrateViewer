@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:MediaBitrateViewer.Core.ViewModels;assembly=MediaBitrateViewer.Core"
+             x:Class="MediaBitrateViewer.App.Views.StreamMetadataView"
+             x:DataType="vm:StreamMetadataViewModel">
+    <Border Classes="panel">
+        <StackPanel Spacing="8">
+            <TextBlock Classes="h3" Text="Active stream" />
+            <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                  RowSpacing="6" ColumnSpacing="10">
+                <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Index" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Classes="value mono" Text="{Binding Index}" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Codec" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Classes="value" Text="{Binding Codec}" TextWrapping="Wrap" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Profile" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Classes="value" Text="{Binding Profile}" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Resolution" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Classes="value mono" Text="{Binding Resolution}" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Classes="label" Text="Pixel fmt" />
+                <TextBlock Grid.Row="4" Grid.Column="1" Classes="value mono" Text="{Binding PixelFormat}" />
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Classes="label" Text="Frame rate" />
+                <TextBlock Grid.Row="5" Grid.Column="1" Classes="value mono" Text="{Binding FrameRate}" />
+
+                <TextBlock Grid.Row="6" Grid.Column="0" Classes="label" Text="Duration" />
+                <TextBlock Grid.Row="6" Grid.Column="1" Classes="value mono" Text="{Binding Duration}" />
+
+                <TextBlock Grid.Row="7" Grid.Column="0" Classes="label" Text="Decl. bitrate" />
+                <TextBlock Grid.Row="7" Grid.Column="1" Classes="value mono" Text="{Binding DeclaredBitrate}" />
+
+                <TextBlock Grid.Row="8" Grid.Column="0" Classes="label" Text="Container" />
+                <TextBlock Grid.Row="8" Grid.Column="1" Classes="value" Text="{Binding Container}" TextWrapping="Wrap" />
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

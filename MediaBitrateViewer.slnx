@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MediaBitrateViewer.App/MediaBitrateViewer.App.csproj" />
+    <Project Path="src/MediaBitrateViewer.Core/MediaBitrateViewer.Core.csproj" />
+    <Project Path="src/MediaBitrateViewer.Infrastructure/MediaBitrateViewer.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MediaBitrateViewer.Tests/MediaBitrateViewer.Tests.csproj" />
+  </Folder>
+</Solution>

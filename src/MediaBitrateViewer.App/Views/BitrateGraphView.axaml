@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:scottplot="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
+             xmlns:vm="clr-namespace:MediaBitrateViewer.Core.ViewModels;assembly=MediaBitrateViewer.Core"
+             x:Class="MediaBitrateViewer.App.Views.BitrateGraphView"
+             x:DataType="vm:MainWindowViewModel">
+    <Grid>
+        <scottplot:AvaPlot x:Name="Plot" />
+    </Grid>
+</UserControl>

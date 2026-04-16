@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:MediaBitrateViewer.Core.ViewModels;assembly=MediaBitrateViewer.Core"
+             x:Class="MediaBitrateViewer.App.Views.StatisticsPanelView"
+             x:DataType="vm:StatisticsPanelViewModel">
+    <Border Classes="panel">
+        <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Classes="h3" Text="Visible range" />
+                <TextBlock Grid.Column="1"
+                           Classes="caption mono"
+                           Text="{Binding SampleCountText, StringFormat='{}{0} pts'}"
+                           IsVisible="{Binding HasData}" />
+            </Grid>
+
+            <TextBlock Classes="caption mono"
+                       Text="{Binding RangeText}"
+                       IsVisible="{Binding HasData}" />
+
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
+                  RowSpacing="10" ColumnSpacing="10"
+                  IsVisible="{Binding HasData}">
+                <Border Grid.Row="0" Grid.Column="0" Classes="well">
+                    <StackPanel Classes="stat">
+                        <TextBlock Classes="label" Text="Min" />
+                        <TextBlock Classes="value mono" Text="{Binding MinText}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="1" Classes="well">
+                    <StackPanel Classes="stat">
+                        <TextBlock Classes="label" Text="Max" />
+                        <TextBlock Classes="value mono" Text="{Binding MaxText}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="0" Classes="well">
+                    <StackPanel Classes="stat">
+                        <TextBlock Classes="label" Text="Average" />
+                        <TextBlock Classes="value mono" Text="{Binding AverageText}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="1" Classes="well">
+                    <StackPanel Classes="stat">
+                        <TextBlock Classes="label" Text="P95" />
+                        <TextBlock Classes="value mono" Text="{Binding Percentile95Text}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <TextBlock Classes="caption"
+                       Text="No data in current view"
+                       IsVisible="{Binding !HasData}" />
+        </StackPanel>
+    </Border>
+</UserControl>
