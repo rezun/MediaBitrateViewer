@@ -72,6 +72,7 @@ public static class ServiceConfiguration
             sp.GetRequiredService<ILogger<UserPreferencesStore>>()));
 
         services.AddSingleton<IThemeService, ThemeService>();
+        services.AddSingleton<IUiDispatcher, UiDispatcher>();
         services.AddSingleton<IFilePickerService, FilePickerService>();
         services.AddSingleton<IWindowCoordinator, WindowCoordinator>();
         services.AddSingleton<IRecentFilesService, RecentFilesService>();

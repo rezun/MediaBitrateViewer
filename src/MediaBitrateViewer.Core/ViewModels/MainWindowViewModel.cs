@@ -19,6 +19,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     private readonly IAnalysisPipelineService _pipeline;
     private readonly IUserPreferencesStore _preferencesStore;
     private readonly IThemeService _themeService;
+    private readonly IUiDispatcher _uiDispatcher;
     private readonly IFilePickerService _filePickerService;
     private readonly IWindowCoordinator _windowCoordinator;
     private readonly IRecentFilesService _recentFilesService;
@@ -97,6 +98,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         IAnalysisPipelineService pipeline,
         IUserPreferencesStore preferencesStore,
         IThemeService themeService,
+        IUiDispatcher uiDispatcher,
         IFilePickerService filePickerService,
         IWindowCoordinator windowCoordinator,
         IRecentFilesService recentFilesService,
@@ -114,6 +116,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(preferencesStore);
         ArgumentNullException.ThrowIfNull(themeService);
+        ArgumentNullException.ThrowIfNull(uiDispatcher);
         ArgumentNullException.ThrowIfNull(filePickerService);
         ArgumentNullException.ThrowIfNull(windowCoordinator);
         ArgumentNullException.ThrowIfNull(recentFilesService);
@@ -127,6 +130,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         _pipeline = pipeline;
         _preferencesStore = preferencesStore;
         _themeService = themeService;
+        _uiDispatcher = uiDispatcher;
         _filePickerService = filePickerService;
         _windowCoordinator = windowCoordinator;
         _recentFilesService = recentFilesService;
@@ -310,6 +314,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         try
         {
             var result = await _pipeline.RunFrameAnalysisAsync(probe, stream, observer, cts.Token);
+            await observer.FlushPendingAsync(CancellationToken.None);
 
             switch (result.Outcome)
             {
@@ -350,24 +355,57 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
 
     private sealed class FrameProgressObserver(MainWindowViewModel vm, double? totalDuration) : IFrameAnalysisProgressObserver
     {
+        private readonly List<FrameRecord> _pendingFrames = new();
         private long _lastFlushTimestamp = vm._timeProvider.GetTimestamp();
+        private long _pendingTotalFrames;
+        private double _pendingTimestampSeconds;
 
-        public ValueTask OnFrameAsync(FrameRecord frame, long totalFrames, CancellationToken cancellationToken)
+        public async ValueTask OnFrameAsync(FrameRecord frame, long totalFrames, CancellationToken cancellationToken)
         {
-            vm._frames.Add(frame);
-            vm._sortedFrames = null;
+            _pendingFrames.Add(frame);
+            _pendingTotalFrames = totalFrames;
+            _pendingTimestampSeconds = frame.TimestampSeconds;
 
             var now = vm._timeProvider.GetTimestamp();
             var elapsed = vm._timeProvider.GetElapsedTime(_lastFlushTimestamp, now);
             if (elapsed.TotalMilliseconds >= 100 || (totalFrames & 1023) == 0)
             {
-                vm.LoadingPanel.Progress = new AnalysisProgress(totalFrames, frame.TimestampSeconds, totalDuration);
-                vm.RecomputeSeries();
-                vm.RaiseGraphUpdated();
-                _lastFlushTimestamp = now;
+                await FlushPendingAsync(cancellationToken).ConfigureAwait(false);
             }
-            return ValueTask.CompletedTask;
         }
+
+        public ValueTask FlushPendingAsync(CancellationToken cancellationToken)
+        {
+            if (_pendingFrames.Count == 0)
+            {
+                return ValueTask.CompletedTask;
+            }
+
+            var batch = _pendingFrames.ToArray();
+            var totalFrames = _pendingTotalFrames;
+            var timestampSeconds = _pendingTimestampSeconds;
+            _pendingFrames.Clear();
+            _lastFlushTimestamp = vm._timeProvider.GetTimestamp();
+
+            return vm.ApplyFrameProgressAsync(batch, totalFrames, timestampSeconds, totalDuration, cancellationToken);
+        }
+    }
+
+    private ValueTask ApplyFrameProgressAsync(
+        IReadOnlyList<FrameRecord> frames,
+        long totalFrames,
+        double timestampSeconds,
+        double? totalDuration,
+        CancellationToken cancellationToken)
+    {
+        return _uiDispatcher.InvokeAsync(() =>
+        {
+            _frames.AddRange(frames);
+            _sortedFrames = null;
+            LoadingPanel.Progress = new AnalysisProgress(totalFrames, timestampSeconds, totalDuration);
+            RecomputeSeries();
+            RaiseGraphUpdated();
+        }, cancellationToken);
     }
 
     [RelayCommand]

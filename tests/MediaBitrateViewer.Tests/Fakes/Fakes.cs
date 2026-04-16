@@ -242,6 +242,21 @@ internal sealed class FakeThemeService : IThemeService
     }
 }
 
+internal sealed class FakeUiDispatcher : IUiDispatcher
+{
+    public int InvokeAsyncCalls { get; private set; }
+
+    public ValueTask InvokeAsync(Action action, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        InvokeAsyncCalls++;
+        action();
+        return ValueTask.CompletedTask;
+    }
+}
+
 internal sealed class FakeFilePicker : IFilePickerService
 {
     public string? Next { get; set; }

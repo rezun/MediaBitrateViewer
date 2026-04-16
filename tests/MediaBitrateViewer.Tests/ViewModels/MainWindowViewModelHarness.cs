@@ -23,6 +23,7 @@ internal sealed class MainWindowViewModelHarness
     public FakeCache Cache { get; } = new();
     public FakePrefsStore Prefs { get; } = new();
     public FakeThemeService Theme { get; } = new();
+    public FakeUiDispatcher Dispatcher { get; } = new();
     public FakeFilePicker Picker { get; } = new();
     public FakeWindowCoordinator Coord { get; } = new();
     public FakeRecentFilesService Recent { get; } = new();
@@ -40,7 +41,7 @@ internal sealed class MainWindowViewModelHarness
             Runtime,
             Version,
             FfprobeLocator, pipeline,
-            Prefs, Theme, Picker, Coord, Recent,
+            Prefs, Theme, Dispatcher, Picker, Coord, Recent,
             TimeProvider,
             NullLogger<MainWindowViewModel>.Instance,
             new CursorReadoutViewModel(),

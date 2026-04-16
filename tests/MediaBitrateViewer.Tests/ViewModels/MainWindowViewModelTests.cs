@@ -183,6 +183,20 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task LoadFile_FrameAnalysisProgress_UsesUiDispatcher()
+    {
+        var harness = new MainWindowViewModelHarness();
+        var vm = harness.Build();
+        await vm.InitializeAsync(CancellationToken.None);
+
+        await vm.LoadFileAsync("/tmp/sample.mp4");
+        await MainWindowViewModelHarness.WaitForStatusAsync(vm, WorkflowStatus.Ready);
+
+        Assert.True(harness.Dispatcher.InvokeAsyncCalls > 0);
+        Assert.Equal(harness.Frames.FramesToEmit, vm.Frames.Count);
+    }
+
+    [Fact]
     public async Task SetTheme_PersistsAndAppliesTheme()
     {
         var harness = new MainWindowViewModelHarness();
