@@ -95,3 +95,7 @@ Useful if you've re-encoded a file with the same name or suspect a stale result.
 - Video streams only — audio streams are not analyzed
 - No export yet (CSV, image) — the graph is read-only
 - Requires ffprobe on `PATH`; no bundled binary or custom path picker
+
+## License
+
+Released under the [MIT License](LICENSE).
