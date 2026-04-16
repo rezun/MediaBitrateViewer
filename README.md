@@ -4,6 +4,10 @@ A cross-platform desktop app for inspecting how the bitrate of a video file beha
 
 Useful for checking encoder output, spotting bitrate spikes, comparing CBR vs. VBR behavior, or just understanding where the bits in a file actually go.
 
+## Built with AI
+
+This project was developed using Claude Code. Most of the code was written by Claude; decisions, review, and direction are mine.
+
 ## Requirements
 
 - Windows, macOS, or Linux
