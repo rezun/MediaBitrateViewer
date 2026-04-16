@@ -22,7 +22,7 @@ permissions:
 env:
   APP_PROJECT: src/MediaBitrateViewer.App/MediaBitrateViewer.App.csproj
   APP_NAME: Media Bitrate Viewer
-  PACK_ID: rezun.MediaBitrateViewer
+  PACK_ID: MediaBitrateViewer
   PACK_AUTHORS: rezun
   DOTNET_VERSION: 10.0.x
 
