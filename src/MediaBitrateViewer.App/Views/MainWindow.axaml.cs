@@ -130,6 +130,11 @@ public partial class MainWindow : Window
             Command = vm.ShowTestUpdateNotificationCommand
         });
 
+        debugMenu.Menu.Items.Add(new NativeMenuItem("Show test toast")
+        {
+            Command = vm.ShowTestToastCommand
+        });
+
         root.Items.Add(debugMenu);
     }
 

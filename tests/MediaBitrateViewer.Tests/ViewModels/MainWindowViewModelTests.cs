@@ -62,6 +62,23 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task OpenRecent_MissingFile_RemovesEntryAndDoesNotOpen()
+    {
+        var harness = new MainWindowViewModelHarness();
+        var vm = harness.Build();
+        await vm.InitializeAsync(CancellationToken.None);
+        await harness.Recent.AddAsync("/tmp/missing.mp4");
+
+        await vm.OpenRecentCommand.ExecuteAsync("/tmp/missing.mp4");
+
+        Assert.Empty(vm.RecentFiles);
+        Assert.Null(vm.ProbedFile);
+        Assert.Empty(harness.Coord.OpenedFiles);
+        Assert.Equal("Removed missing recent file: missing.mp4", vm.TransientStatusMessage);
+        Assert.True(vm.HasTransientStatus);
+    }
+
+    [Fact]
     public async Task CancelAnalysis_DuringRun_TransitionsToCanceledAndPreservesPartialData()
     {
         var harness = new MainWindowViewModelHarness();
@@ -261,6 +278,32 @@ public sealed class MainWindowViewModelTests
 
         Assert.False(vm.IsDevelopmentEnvironment);
         Assert.False(vm.ShowTestUpdateNotificationCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void ShowTestToast_InDevelopment_ShowsTransientToast()
+    {
+        var harness = new MainWindowViewModelHarness();
+        harness.Runtime.IsDevelopmentEnvironment = true;
+        var vm = harness.Build();
+
+        Assert.True(vm.ShowTestToastCommand.CanExecute(null));
+
+        vm.ShowTestToastCommand.Execute(null);
+
+        Assert.Equal("Debug toast: transient notifications are working.", vm.TransientStatusMessage);
+        Assert.True(vm.HasTransientStatus);
+    }
+
+    [Fact]
+    public void ShowTestToast_OutsideDevelopment_IsDisabled()
+    {
+        var harness = new MainWindowViewModelHarness();
+        harness.Runtime.IsDevelopmentEnvironment = false;
+        var vm = harness.Build();
+
+        Assert.False(vm.IsDevelopmentEnvironment);
+        Assert.False(vm.ShowTestToastCommand.CanExecute(null));
     }
 
     [Fact]

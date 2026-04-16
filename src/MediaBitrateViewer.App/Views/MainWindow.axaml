@@ -86,168 +86,196 @@
         <KeyBinding Gesture="Escape" Command="{Binding CancelAnalysisCommand}" />
     </Window.KeyBindings>
 
-    <DockPanel LastChildFill="True">
-        <!-- Native menu bar (renders on Windows/Linux; invisible on macOS where the menu lives in the system bar) -->
-        <NativeMenuBar DockPanel.Dock="Top" />
+    <Grid>
+        <DockPanel LastChildFill="True">
+            <!-- Native menu bar (renders on Windows/Linux; invisible on macOS where the menu lives in the system bar) -->
+            <NativeMenuBar DockPanel.Dock="Top" />
 
-        <!-- Toolbar -->
-        <views:ToolbarView DockPanel.Dock="Top" />
+            <!-- Toolbar -->
+            <views:ToolbarView DockPanel.Dock="Top" />
 
-        <!-- Status bar -->
-        <Border DockPanel.Dock="Bottom" Classes="statusbar">
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0"
-                           Classes="caption"
-                           VerticalAlignment="Center"
-                           Text="{Binding FfprobeVersionDisplay, FallbackValue='ffprobe not located'}" />
-                <TextBlock Grid.Column="1"
-                           Classes="caption"
-                           VerticalAlignment="Center"
-                           Text="{Binding Status}" />
-            </Grid>
-        </Border>
-
-        <!-- Main content area -->
-        <Grid ColumnDefinitions="*,8,320">
-            <!-- Center: graph + overlays -->
-            <Border Grid.Column="0"
-                    Margin="12,12,0,12"
-                    Classes="panel"
-                    Padding="0">
-                <DockPanel LastChildFill="True">
-                    <!-- Loading panel docked below graph -->
-                    <views:LoadingPanelView DockPanel.Dock="Bottom"
-                                            Margin="12"
-                                            DataContext="{Binding LoadingPanel}" />
-
-                    <Grid>
-                        <views:BitrateGraphView />
-
-                    <!-- Drop overlay -->
-                    <Border Classes="drop-overlay"
-                            Margin="20"
-                            IsVisible="False"
-                            x:Name="DropOverlay">
-                        <StackPanel HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Spacing="8">
-                            <TextBlock Classes="h1"
-                                       Text="Drop file to load"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Classes="caption"
-                                       Text="Multiple files open one window each."
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Idle hint -->
-                    <Border IsVisible="{Binding ShowIdleHint}"
-                            Background="{DynamicResource Surface1Brush}">
-                        <StackPanel HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Spacing="12"
-                                    MaxWidth="380">
-                            <TextBlock Classes="h1"
-                                       Text="No file loaded"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Classes="body"
-                                       Text="Drop a video file here, or use Open File to pick one. Each file opens in its own window."
-                                       HorizontalAlignment="Center"
-                                       TextAlignment="Center"
-                                       TextWrapping="Wrap" />
-                            <Button Classes="accent"
-                                    Command="{Binding OpenFileCommand}"
-                                    HorizontalAlignment="Center"
-                                    Padding="14,8">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <i:Icon Value="mdi-folder-open-outline" />
-                                    <TextBlock Text="Open file…" />
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- ffprobe missing -->
-                    <Border IsVisible="{Binding ShowFfprobeMissingError}"
-                            Background="{DynamicResource Surface1Brush}">
-                        <StackPanel HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Spacing="12"
-                                    MaxWidth="480">
-                            <i:Icon Value="mdi-alert-circle-outline"
-                                    FontSize="48"
-                                    Foreground="{DynamicResource ErrorBrush}"
-                                    HorizontalAlignment="Center" />
-                            <TextBlock Classes="h1"
-                                       Text="ffprobe not found"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Classes="body"
-                                       Text="{Binding ErrorMessage}"
-                                       HorizontalAlignment="Center"
-                                       TextAlignment="Center"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Generic errors -->
-                    <Border IsVisible="{Binding ShowGenericError}"
-                            Background="{DynamicResource Surface1Brush}">
-                        <StackPanel HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Spacing="12"
-                                    MaxWidth="480">
-                            <i:Icon Value="mdi-alert-outline"
-                                    FontSize="40"
-                                    Foreground="{DynamicResource WarningBrush}"
-                                    HorizontalAlignment="Center" />
-                            <TextBlock Classes="h2"
-                                       Text="Could not analyze this file"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Classes="body"
-                                       Text="{Binding ErrorMessage}"
-                                       HorizontalAlignment="Center"
-                                       TextAlignment="Center"
-                                       TextWrapping="Wrap" />
-                            <Button Command="{Binding ReloadCommand}"
-                                    HorizontalAlignment="Center"
-                                    IsEnabled="{Binding HasFile}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <i:Icon Value="mdi-refresh" />
-                                    <TextBlock Text="Retry" />
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Partial-data badge -->
-                    <Border IsVisible="{Binding IsPartialData}"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Top"
-                            Margin="12"
-                            Padding="8,4"
-                            CornerRadius="3"
-                            Background="{DynamicResource WarningBrush}">
-                        <TextBlock Text="Partial data — analysis canceled"
-                                   Foreground="White"
-                                   FontSize="11"
-                                   FontWeight="SemiBold" />
-                    </Border>
-                    </Grid>
-                </DockPanel>
+            <!-- Status bar -->
+            <Border DockPanel.Dock="Bottom" Classes="statusbar">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <TextBlock Grid.Column="0"
+                               Classes="caption"
+                               VerticalAlignment="Center"
+                               Text="{Binding FfprobeVersionDisplay, FallbackValue='ffprobe not located'}" />
+                    <TextBlock Grid.Column="1"
+                               Classes="caption"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Right"
+                               Text="{Binding Status}" />
+                </Grid>
             </Border>
 
-            <GridSplitter Grid.Column="1" Background="Transparent" />
+            <!-- Main content area -->
+            <Grid>
+                <Grid ColumnDefinitions="*,8,320">
+                <!-- Center: graph + overlays -->
+                <Border Grid.Column="0"
+                        Margin="12,12,0,12"
+                        Classes="panel"
+                        Padding="0">
+                    <DockPanel LastChildFill="True">
+                        <!-- Loading panel docked below graph -->
+                        <views:LoadingPanelView DockPanel.Dock="Bottom"
+                                                Margin="12"
+                                                DataContext="{Binding LoadingPanel}" />
 
-            <!-- Right sidebar -->
-            <ScrollViewer Grid.Column="2"
-                          Margin="0,12,12,12"
-                          VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="12">
-                    <views:CursorReadoutView DataContext="{Binding CursorReadout}" />
-                    <views:StreamMetadataView DataContext="{Binding StreamMetadata}" />
-                    <views:StatisticsPanelView DataContext="{Binding Statistics}" />
-                </StackPanel>
-            </ScrollViewer>
-        </Grid>
-    </DockPanel>
+                        <Grid>
+                            <views:BitrateGraphView />
+
+                        <!-- Drop overlay -->
+                        <Border Classes="drop-overlay"
+                                Margin="20"
+                                IsVisible="False"
+                                x:Name="DropOverlay">
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="8">
+                                <TextBlock Classes="h1"
+                                           Text="Drop file to load"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Classes="caption"
+                                           Text="Multiple files open one window each."
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Idle hint -->
+                        <Border IsVisible="{Binding ShowIdleHint}"
+                                Background="{DynamicResource Surface1Brush}">
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="12"
+                                        MaxWidth="380">
+                                <TextBlock Classes="h1"
+                                           Text="No file loaded"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Classes="body"
+                                           Text="Drop a video file here, or use Open File to pick one. Each file opens in its own window."
+                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                                <Button Classes="accent"
+                                        Command="{Binding OpenFileCommand}"
+                                        HorizontalAlignment="Center"
+                                        Padding="14,8">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <i:Icon Value="mdi-folder-open-outline" />
+                                        <TextBlock Text="Open file…" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ffprobe missing -->
+                        <Border IsVisible="{Binding ShowFfprobeMissingError}"
+                                Background="{DynamicResource Surface1Brush}">
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="12"
+                                        MaxWidth="480">
+                                <i:Icon Value="mdi-alert-circle-outline"
+                                        FontSize="48"
+                                        Foreground="{DynamicResource ErrorBrush}"
+                                        HorizontalAlignment="Center" />
+                                <TextBlock Classes="h1"
+                                           Text="ffprobe not found"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Classes="body"
+                                           Text="{Binding ErrorMessage}"
+                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Generic errors -->
+                        <Border IsVisible="{Binding ShowGenericError}"
+                                Background="{DynamicResource Surface1Brush}">
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="12"
+                                        MaxWidth="480">
+                                <i:Icon Value="mdi-alert-outline"
+                                        FontSize="40"
+                                        Foreground="{DynamicResource WarningBrush}"
+                                        HorizontalAlignment="Center" />
+                                <TextBlock Classes="h2"
+                                           Text="Could not analyze this file"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Classes="body"
+                                           Text="{Binding ErrorMessage}"
+                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                                <Button Command="{Binding ReloadCommand}"
+                                        HorizontalAlignment="Center"
+                                        IsEnabled="{Binding HasFile}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <i:Icon Value="mdi-refresh" />
+                                        <TextBlock Text="Retry" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Partial-data badge -->
+                        <Border IsVisible="{Binding IsPartialData}"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Margin="12"
+                                Padding="8,4"
+                                CornerRadius="3"
+                                Background="{DynamicResource WarningBrush}">
+                            <TextBlock Text="Partial data — analysis canceled"
+                                       Foreground="White"
+                                       FontSize="11"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
+                <GridSplitter Grid.Column="1" Background="Transparent" />
+
+                <!-- Right sidebar -->
+                <ScrollViewer Grid.Column="2"
+                              Margin="0,12,12,12"
+                              VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="12">
+                        <views:CursorReadoutView DataContext="{Binding CursorReadout}" />
+                        <views:StreamMetadataView DataContext="{Binding StreamMetadata}" />
+                        <views:StatisticsPanelView DataContext="{Binding Statistics}" />
+                    </StackPanel>
+                </ScrollViewer>
+                </Grid>
+            </Grid>
+        </DockPanel>
+
+        <Border Classes="toast-overlay"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,8,12,0"
+                IsVisible="{Binding HasTransientStatus}"
+                Opacity="{Binding TransientStatusOpacity}">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.22" />
+                </Transitions>
+            </Border.Transitions>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <i:Icon Value="mdi-information-outline"
+                        FontSize="18"
+                        Foreground="{DynamicResource InfoBrush}"
+                        VerticalAlignment="Center" />
+                <TextBlock Classes="toast-text"
+                           Text="{Binding TransientStatusMessage}"
+                           TextWrapping="Wrap"
+                           MaxWidth="300" />
+            </StackPanel>
+        </Border>
+    </Grid>
 </Window>

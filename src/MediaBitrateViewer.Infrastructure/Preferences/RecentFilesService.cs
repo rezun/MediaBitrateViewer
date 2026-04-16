@@ -43,6 +43,19 @@ public sealed class RecentFilesService : IRecentFilesService
         await PersistAsync().ConfigureAwait(false);
     }
 
+    public async Task RemoveAsync(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(filePath);
+
+        for (var i = _files.Count - 1; i >= 0; i--)
+        {
+            if (string.Equals(_files[i], filePath, StringComparison.Ordinal))
+                _files.RemoveAt(i);
+        }
+
+        await PersistAsync().ConfigureAwait(false);
+    }
+
     public async Task ClearAsync()
     {
         _files.Clear();

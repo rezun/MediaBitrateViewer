@@ -27,8 +27,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     private readonly ILogger<MainWindowViewModel> _logger;
 
     private const double MinYZoom = 1.0 / 64.0;
+    private static readonly TimeSpan TransientStatusDuration = TimeSpan.FromSeconds(4);
+    private static readonly TimeSpan TransientStatusFadeDuration = TimeSpan.FromMilliseconds(220);
 
     private CancellationTokenSource? _analysisCts;
+    private ITimer? _transientStatusTimer;
     private readonly List<FrameRecord> _frames = new();
     private IReadOnlyList<FrameRecord>? _sortedFrames;
     private IReadOnlyList<BitratePoint> _series = Array.Empty<BitratePoint>();
@@ -42,6 +45,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     [ObservableProperty] private WorkflowStatus _status = WorkflowStatus.Idle;
     [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private bool _isPartialData;
+    [ObservableProperty] private string? _transientStatusMessage;
+    [ObservableProperty] private double _transientStatusOpacity;
     [ObservableProperty] private ProbedMediaFile? _probedFile;
     [ObservableProperty] private VideoStreamInfo? _selectedStream;
     [ObservableProperty] private GraphMode _graphMode = GraphMode.PerSecond;
@@ -79,6 +84,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     public bool ShowGenericError =>
         Status is WorkflowStatus.ProbeFailed or WorkflowStatus.NoVideoStreams or WorkflowStatus.FrameAnalysisFailed;
     public bool ShowIdleHint => Status == WorkflowStatus.Idle;
+    public bool HasTransientStatus => !string.IsNullOrEmpty(TransientStatusMessage);
     public bool HasWindowSetting => GraphMode is GraphMode.RollingAverage or GraphMode.PeakEnvelope;
     public bool IsUpdateReadyToInstall => _appUpdateService.IsUpdateReadyToInstall;
     public string UpdateButtonText => _appUpdateService.UpdateButtonText;
@@ -174,6 +180,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     private async Task OpenRecentAsync(string? path)
     {
         if (string.IsNullOrEmpty(path)) return;
+        if (!File.Exists(path))
+        {
+            await _recentFilesService.RemoveAsync(path);
+            ShowTransientStatus($"Removed missing recent file: {Path.GetFileName(path)}");
+            return;
+        }
         await OpenFromExternalAsync(path);
     }
 
@@ -468,6 +480,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         _appUpdateService.ShowTestUpdateNotification();
     }
 
+    [RelayCommand(CanExecute = nameof(CanShowDevelopmentDebugAction))]
+    private void ShowTestToast()
+    {
+        ShowTransientStatus("Debug toast: transient notifications are working.");
+    }
+
     [RelayCommand(CanExecute = nameof(CanYZoomIn))]
     private void YZoomIn()
     {
@@ -491,6 +509,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     private bool CanYZoomOut() => _yZoomLevel < 1.0 && _series.Count > 0;
     private bool CanInstallUpdate() => _appUpdateService.IsUpdateReadyToInstall;
     private bool CanShowTestUpdateNotification() => _appRuntimeInfo.IsDevelopmentEnvironment;
+    private bool CanShowDevelopmentDebugAction() => _appRuntimeInfo.IsDevelopmentEnvironment;
 
     private void ResetZoomToFit()
     {
@@ -557,6 +576,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         OnPropertyChanged(nameof(ShowFfprobeMissingError));
         OnPropertyChanged(nameof(ShowGenericError));
         OnPropertyChanged(nameof(ShowIdleHint));
+    }
+
+    partial void OnTransientStatusMessageChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasTransientStatus));
     }
 
     partial void OnProbedFileChanged(ProbedMediaFile? value)
@@ -659,12 +683,73 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         YZoomOutCommand.NotifyCanExecuteChanged();
     }
 
+    private void ShowTransientStatus(string message)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(message);
+
+        _transientStatusTimer?.Dispose();
+        TransientStatusMessage = message;
+        TransientStatusOpacity = 1.0;
+        _transientStatusTimer = _timeProvider.CreateTimer(
+            static state => ((MainWindowViewModel)state!).BeginTransientStatusFadeOut(),
+            this,
+            TransientStatusDuration,
+            Timeout.InfiniteTimeSpan);
+    }
+
+    private void BeginTransientStatusFadeOut()
+    {
+        try
+        {
+            _uiDispatcher.InvokeAsync(StartTransientStatusFadeOut).AsTask().GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Starting transient status fade-out failed");
+        }
+    }
+
+    private void StartTransientStatusFadeOut()
+    {
+        if (!HasTransientStatus) return;
+
+        _transientStatusTimer?.Dispose();
+        TransientStatusOpacity = 0.0;
+        _transientStatusTimer = _timeProvider.CreateTimer(
+            static state => ((MainWindowViewModel)state!).CompleteTransientStatusFadeOut(),
+            this,
+            TransientStatusFadeDuration,
+            Timeout.InfiniteTimeSpan);
+    }
+
+    private void CompleteTransientStatusFadeOut()
+    {
+        try
+        {
+            _uiDispatcher.InvokeAsync(ClearTransientStatus).AsTask().GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Clearing transient status failed");
+        }
+    }
+
+    private void ClearTransientStatus()
+    {
+        _transientStatusTimer?.Dispose();
+        _transientStatusTimer = null;
+        TransientStatusOpacity = 0.0;
+        TransientStatusMessage = null;
+    }
+
     public ValueTask DisposeAsync()
     {
         if (_disposed) return ValueTask.CompletedTask;
         _disposed = true;
         _appUpdateService.StateChanged -= OnAppUpdateStateChanged;
         CancelAnalysisInternal();
+        _transientStatusTimer?.Dispose();
+        _transientStatusTimer = null;
         return ValueTask.CompletedTask;
     }
 

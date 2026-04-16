@@ -284,6 +284,16 @@ internal sealed class FakeRecentFilesService : IRecentFilesService
         return Task.CompletedTask;
     }
 
+    public Task RemoveAsync(string filePath)
+    {
+        for (var i = _files.Count - 1; i >= 0; i--)
+        {
+            if (string.Equals(_files[i], filePath, StringComparison.Ordinal))
+                _files.RemoveAt(i);
+        }
+        return Task.CompletedTask;
+    }
+
     public Task ClearAsync()
     {
         _files.Clear();
