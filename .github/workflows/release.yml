@@ -186,6 +186,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             VERSION="${{ inputs.version }}"
@@ -196,9 +197,9 @@ jobs:
 
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.publish_release }}" != "true" ]]; then
-              gh release create "$TAG" --title "Media Bitrate Viewer $VERSION" --generate-notes --draft
+              gh release create "$TAG" --title "Media Bitrate Viewer $VERSION" --generate-notes --draft --target "${{ github.sha }}"
             else
-              gh release create "$TAG" --title "Media Bitrate Viewer $VERSION" --generate-notes
+              gh release create "$TAG" --title "Media Bitrate Viewer $VERSION" --generate-notes --target "${{ github.sha }}"
             fi
           fi
 
