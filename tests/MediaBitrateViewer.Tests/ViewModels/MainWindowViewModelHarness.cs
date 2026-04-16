@@ -15,6 +15,7 @@ internal sealed class MainWindowViewModelHarness
 {
     public FakeAppUpdateService Updates { get; } = new();
     public FakeAppRuntimeInfo Runtime { get; } = new();
+    public FakeAppVersionProvider Version { get; } = new();
     public FakeFfprobeLocator FfprobeLocator { get; set; } = new(true);
     public FakeFingerprintService Fingerprint { get; } = new();
     public FakeProbeService Probe { get; } = new();
@@ -37,6 +38,7 @@ internal sealed class MainWindowViewModelHarness
         return new MainWindowViewModel(
             Updates,
             Runtime,
+            Version,
             FfprobeLocator, pipeline,
             Prefs, Theme, Picker, Coord, Recent,
             TimeProvider,

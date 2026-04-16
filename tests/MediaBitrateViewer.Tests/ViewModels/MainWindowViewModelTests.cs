@@ -248,4 +248,14 @@ public sealed class MainWindowViewModelTests
         Assert.False(vm.IsDevelopmentEnvironment);
         Assert.False(vm.ShowTestUpdateNotificationCommand.CanExecute(null));
     }
+
+    [Fact]
+    public void AppVersionDisplay_ComesFromVersionProvider()
+    {
+        var harness = new MainWindowViewModelHarness();
+        harness.Version.DisplayVersion = "0.1.2";
+        var vm = harness.Build();
+
+        Assert.Equal("0.1.2", vm.AppVersionDisplay);
+    }
 }

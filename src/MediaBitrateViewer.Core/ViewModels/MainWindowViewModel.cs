@@ -14,6 +14,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
 {
     private readonly IAppUpdateService _appUpdateService;
     private readonly IAppRuntimeInfo _appRuntimeInfo;
+    private readonly IAppVersionProvider _appVersionProvider;
     private readonly IFfprobeLocator _ffprobeLocator;
     private readonly IAnalysisPipelineService _pipeline;
     private readonly IUserPreferencesStore _preferencesStore;
@@ -80,6 +81,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     public bool HasWindowSetting => GraphMode is GraphMode.RollingAverage or GraphMode.PeakEnvelope;
     public bool IsUpdateReadyToInstall => _appUpdateService.IsUpdateReadyToInstall;
     public string UpdateButtonText => _appUpdateService.UpdateButtonText;
+    public string AppVersionDisplay => _appVersionProvider.DisplayVersion;
     public string FfprobeVersionDisplay =>
         _ffprobeLocation?.VersionString ?? string.Empty;
 
@@ -90,6 +92,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     public MainWindowViewModel(
         IAppUpdateService appUpdateService,
         IAppRuntimeInfo appRuntimeInfo,
+        IAppVersionProvider appVersionProvider,
         IFfprobeLocator ffprobeLocator,
         IAnalysisPipelineService pipeline,
         IUserPreferencesStore preferencesStore,
@@ -106,6 +109,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     {
         ArgumentNullException.ThrowIfNull(appUpdateService);
         ArgumentNullException.ThrowIfNull(appRuntimeInfo);
+        ArgumentNullException.ThrowIfNull(appVersionProvider);
         ArgumentNullException.ThrowIfNull(ffprobeLocator);
         ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(preferencesStore);
@@ -118,6 +122,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
 
         _appUpdateService = appUpdateService;
         _appRuntimeInfo = appRuntimeInfo;
+        _appVersionProvider = appVersionProvider;
         _ffprobeLocator = ffprobeLocator;
         _pipeline = pipeline;
         _preferencesStore = preferencesStore;

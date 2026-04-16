@@ -50,6 +50,7 @@ public static class ServiceConfiguration
 
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IAppRuntimeInfo, AppRuntimeInfo>();
+        services.AddSingleton<IAppVersionProvider, AppVersionProvider>();
 
         services.AddSingleton<IFfprobeLocator, FfprobeLocator>();
         services.AddSingleton<IFileFingerprintService, FileFingerprintService>();

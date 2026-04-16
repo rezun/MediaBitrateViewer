@@ -51,6 +51,11 @@ internal sealed class FakeAppRuntimeInfo : IAppRuntimeInfo
     public bool IsDevelopmentEnvironment { get; set; }
 }
 
+internal sealed class FakeAppVersionProvider : IAppVersionProvider
+{
+    public string DisplayVersion { get; set; } = "1.2.3-test";
+}
+
 internal sealed class FakeFingerprintService : IFileFingerprintService
 {
     public ValueTask<FileFingerprint> ComputeAsync(string filePath, CancellationToken cancellationToken) =>
