@@ -22,12 +22,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<MainWindowViewModel> _logger;
 
+    private const double MinYZoom = 1.0 / 64.0;
+
     private CancellationTokenSource? _analysisCts;
     private readonly List<FrameRecord> _frames = new();
     private IReadOnlyList<FrameRecord>? _sortedFrames;
     private IReadOnlyList<BitratePoint> _series = Array.Empty<BitratePoint>();
     private FfprobeLocation? _ffprobeLocation;
     private bool _disposed;
+    private double _yZoomLevel = 1.0;
 
     [ObservableProperty] private string _windowTitle = "Media Bitrate Viewer";
     [ObservableProperty] private string? _filePath;
@@ -77,6 +80,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
 
     public event EventHandler? GraphSeriesUpdated;
     public event EventHandler<VisibleTimeRange>? RequestResetZoom;
+    public event EventHandler<double>? YZoomChanged;
 
     public MainWindowViewModel(
         IFfprobeLocator ffprobeLocator,
@@ -396,8 +400,31 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         ResetZoomToFit();
     }
 
+    [RelayCommand(CanExecute = nameof(CanYZoomIn))]
+    private void YZoomIn()
+    {
+        _yZoomLevel *= 2.0 / 3.0;
+        if (_yZoomLevel < MinYZoom) _yZoomLevel = MinYZoom;
+        YZoomChanged?.Invoke(this, _yZoomLevel);
+        YZoomInCommand.NotifyCanExecuteChanged();
+        YZoomOutCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanYZoomOut))]
+    private void YZoomOut()
+    {
+        _yZoomLevel = Math.Min(1.0, _yZoomLevel * 3.0 / 2.0);
+        YZoomChanged?.Invoke(this, _yZoomLevel);
+        YZoomInCommand.NotifyCanExecuteChanged();
+        YZoomOutCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanYZoomIn() => _yZoomLevel > MinYZoom && _series.Count > 0;
+    private bool CanYZoomOut() => _yZoomLevel < 1.0 && _series.Count > 0;
+
     private void ResetZoomToFit()
     {
+        _yZoomLevel = 1.0;
         if (_series.Count == 0)
         {
             VisibleRange = default;
@@ -408,6 +435,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         VisibleRange = range;
         RequestResetZoom?.Invoke(this, range);
         RecomputeStatistics();
+        YZoomInCommand.NotifyCanExecuteChanged();
+        YZoomOutCommand.NotifyCanExecuteChanged();
     }
 
     public void UpdateVisibleRange(VisibleTimeRange newRange)
@@ -497,12 +526,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         _frames.Clear();
         _sortedFrames = null;
         _series = Array.Empty<BitratePoint>();
+        _yZoomLevel = 1.0;
         SeriesVersion++;
         KnownDurationSeconds = null;
         Statistics.Statistics = VisibleRangeStatistics.Empty;
         CursorReadout.Readout = Models.CursorReadout.Empty(GraphMode);
         LoadingPanel.IsVisible = false;
         LoadingPanel.Progress = default;
+        YZoomInCommand.NotifyCanExecuteChanged();
+        YZoomOutCommand.NotifyCanExecuteChanged();
     }
 
     private IReadOnlyList<FrameRecord> GetSortedFrames()
@@ -550,7 +582,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         Statistics.Statistics = VisibleRangeStatisticsCalculator.Compute(_series, range);
     }
 
-    private void RaiseGraphUpdated() => GraphSeriesUpdated?.Invoke(this, EventArgs.Empty);
+    private void RaiseGraphUpdated()
+    {
+        GraphSeriesUpdated?.Invoke(this, EventArgs.Empty);
+        YZoomInCommand.NotifyCanExecuteChanged();
+        YZoomOutCommand.NotifyCanExecuteChanged();
+    }
 
     public ValueTask DisposeAsync()
     {

@@ -81,6 +81,18 @@
                 </StackPanel>
             </Button>
 
+            <TextBlock Classes="label" VerticalAlignment="Center" Text="Y-Zoom" />
+            
+            <Button Command="{Binding YZoomOutCommand}"
+                    ToolTip.Tip="Y-axis zoom out">
+                <i:Icon Value="mdi-magnify-minus-outline" />
+            </Button>
+
+            <Button Command="{Binding YZoomInCommand}"
+                    ToolTip.Tip="Y-axis zoom in — cuts off peak values">
+                <i:Icon Value="mdi-magnify-plus-outline" />
+            </Button>
+
             <Button Command="{Binding CancelAnalysisCommand}"
                     ToolTip.Tip="Cancel running analysis"
                     IsVisible="{Binding LoadingPanel.IsVisible}">

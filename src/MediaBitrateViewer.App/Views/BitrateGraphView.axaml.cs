@@ -35,6 +35,7 @@ public partial class BitrateGraphView : UserControl
         {
             _vm.GraphSeriesUpdated -= OnSeriesUpdated;
             _vm.RequestResetZoom -= OnRequestResetZoom;
+            _vm.YZoomChanged -= OnYZoomChanged;
         }
 
         _vm = DataContext as MainWindowViewModel;
@@ -43,6 +44,7 @@ public partial class BitrateGraphView : UserControl
         {
             _vm.GraphSeriesUpdated += OnSeriesUpdated;
             _vm.RequestResetZoom += OnRequestResetZoom;
+            _vm.YZoomChanged += OnYZoomChanged;
             _controller.ResetSeries();
             _lastSeriesVersion = -1;
         }
@@ -79,6 +81,14 @@ public partial class BitrateGraphView : UserControl
             _controller.ResetViewport(_vm?.KnownDurationSeconds, e);
             _controller.Refresh();
             _suppressRangeEvent = false;
+        });
+    }
+
+    private void OnYZoomChanged(object? sender, double zoomLevel)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            _controller.ApplyYZoom(zoomLevel);
         });
     }
 

@@ -27,6 +27,7 @@ public sealed class BitratePlotController
     private int _seriesCount;
     private double _lastAppliedYTop;
     private double _lastAppliedXRight;
+    private double _yZoomLevel = 1.0;
 
     public BitratePlotController(AvaPlot plot)
     {
@@ -148,6 +149,7 @@ public sealed class BitratePlotController
         _seriesCount = 0;
         _lastAppliedXRight = 0;
         _lastAppliedYTop = 0;
+        _yZoomLevel = 1.0;
         _plot.Plot.Axes.AutoScale();
     }
 
@@ -157,6 +159,8 @@ public sealed class BitratePlotController
     /// </summary>
     public void ResetViewport(double? knownDurationSeconds, VisibleTimeRange fallback)
     {
+        _yZoomLevel = 1.0;
+
         if (knownDurationSeconds is { } duration && duration > 0)
         {
             _plot.Plot.Axes.SetLimitsX(0, duration);
@@ -278,12 +282,8 @@ public sealed class BitratePlotController
 
         if (yMax <= 0) yMax = 1;
         var pad = Math.Max(yMax * 0.05, 0.5);
-        var yTop = yMax + pad;
+        var yTop = (yMax + pad) * _yZoomLevel;
 
-        // Only update axis limits + rule when the bound actually moves. Replacing
-        // the LockedVertical rule on every refresh races with ScottPlot's render
-        // thread (Multiplot.Render takes no sync lock), which is the source of
-        // the intermittent NREs in RegenerateTicks.
         if (Math.Abs(yTop - _lastAppliedYTop) < 1e-9) return;
 
         _plot.Plot.Axes.SetLimitsY(0, yTop);
@@ -294,6 +294,14 @@ public sealed class BitratePlotController
         _yAxisRule = new ScottPlot.AxisRules.LockedVertical(_plot.Plot.Axes.Left, 0, yTop);
         _plot.Plot.Axes.Rules.Add(_yAxisRule);
         _lastAppliedYTop = yTop;
+    }
+
+    public void ApplyYZoom(double zoomLevel)
+    {
+        _yZoomLevel = zoomLevel;
+        _lastAppliedYTop = 0;
+        ApplyYAxisFromData();
+        Refresh();
     }
 
     private void EnsureCapacity(int count)
