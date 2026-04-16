@@ -102,6 +102,17 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Install vpk tool
+        shell: bash
+        run: |
+          dotnet tool install --tool-path ./.tools vpk --version "${{ steps.velopack.outputs.version }}"
+
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "VPK_BIN=./.tools/vpk.exe" >> "$GITHUB_ENV"
+          else
+            echo "VPK_BIN=./.tools/vpk" >> "$GITHUB_ENV"
+          fi
+
       - name: Generate macOS Info.plist
         if: startsWith(matrix.rid, 'osx-')
         shell: bash
@@ -123,7 +134,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: >
-          dotnet tool exec vpk@${{ steps.velopack.outputs.version }} --
+          "$VPK_BIN" --yes
           download github
           --repoUrl https://github.com/${{ github.repository }}
           --token "$GITHUB_TOKEN"
@@ -133,7 +144,7 @@ jobs:
       - name: Pack Velopack release
         shell: bash
         run: >
-          dotnet tool exec vpk@${{ steps.velopack.outputs.version }} --
+          "$VPK_BIN" --yes
           pack
           --packId ${{ env.PACK_ID }}
           --packVersion ${{ steps.version.outputs.version }}
