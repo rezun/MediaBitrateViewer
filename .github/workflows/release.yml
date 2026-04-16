@@ -123,7 +123,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: >
-          dnx vpk --version ${{ steps.velopack.outputs.version }}
+          dnx vpk@${{ steps.velopack.outputs.version }} --yes
           download github
           --repoUrl https://github.com/${{ github.repository }}
           --token "$GITHUB_TOKEN"
@@ -133,7 +133,7 @@ jobs:
       - name: Pack Velopack release
         shell: bash
         run: >
-          dnx vpk --version ${{ steps.velopack.outputs.version }}
+          dnx vpk@${{ steps.velopack.outputs.version }} --yes
           pack
           --packId ${{ env.PACK_ID }}
           --packVersion ${{ steps.version.outputs.version }}
