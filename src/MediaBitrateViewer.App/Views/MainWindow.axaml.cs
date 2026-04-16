@@ -12,6 +12,8 @@ namespace MediaBitrateViewer.App.Views;
 
 public partial class MainWindow : Window
 {
+    private const string DebugMenuHeader = "Debug";
+
     private NativeMenu? _recentFilesMenu;
     private INotifyCollectionChanged? _recentFilesSubscription;
 
@@ -31,6 +33,7 @@ public partial class MainWindow : Window
 
         _recentFilesMenu = FindRecentFilesSubmenu();
         RebuildRecentFilesMenu();
+        RebuildDebugMenu();
 
         if (DataContext is MainWindowViewModel vm && vm.RecentFiles is INotifyCollectionChanged notify)
         {
@@ -100,6 +103,34 @@ public partial class MainWindow : Window
         {
             Command = vm.ClearRecentCommand
         });
+    }
+
+    private void RebuildDebugMenu()
+    {
+        var root = NativeMenu.GetMenu(this);
+        if (root is null) return;
+
+        var existing = root.Items
+            .OfType<NativeMenuItem>()
+            .FirstOrDefault(item => string.Equals(item.Header, DebugMenuHeader, StringComparison.Ordinal));
+
+        if (existing is not null)
+            root.Items.Remove(existing);
+
+        if (DataContext is not MainWindowViewModel vm || !vm.IsDevelopmentEnvironment)
+            return;
+
+        var debugMenu = new NativeMenuItem(DebugMenuHeader)
+        {
+            Menu = new NativeMenu()
+        };
+
+        debugMenu.Menu.Items.Add(new NativeMenuItem("Show update notification")
+        {
+            Command = vm.ShowTestUpdateNotificationCommand
+        });
+
+        root.Items.Add(debugMenu);
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

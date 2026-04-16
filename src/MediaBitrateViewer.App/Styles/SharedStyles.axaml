@@ -81,6 +81,24 @@
         <Setter Property="Margin" Value="6,4" />
     </Style>
 
+    <Style Selector="Button.toolbar-chip">
+        <Setter Property="Background" Value="{DynamicResource WarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource WarningBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+    </Style>
+
+    <Style Selector="Button.toolbar-chip:pointerover">
+        <Setter Property="Background" Value="{DynamicResource WarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
     <!-- Stat block -->
     <Style Selector="StackPanel.stat">
         <Setter Property="Spacing" Value="2" />

@@ -4,6 +4,7 @@ using Projektanker.Icons.Avalonia.MaterialDesign;
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Velopack;
 
 namespace MediaBitrateViewer.App;
 
@@ -12,6 +13,10 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        VelopackApp.Build()
+            .SetAutoApplyOnStartup(false)
+            .Run();
+
         EnsureBundledLaunchPath();
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }

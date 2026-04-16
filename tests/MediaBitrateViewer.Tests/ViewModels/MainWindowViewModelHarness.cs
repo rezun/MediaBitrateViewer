@@ -13,6 +13,8 @@ namespace MediaBitrateViewer.Tests.ViewModels;
 /// </summary>
 internal sealed class MainWindowViewModelHarness
 {
+    public FakeAppUpdateService Updates { get; } = new();
+    public FakeAppRuntimeInfo Runtime { get; } = new();
     public FakeFfprobeLocator FfprobeLocator { get; set; } = new(true);
     public FakeFingerprintService Fingerprint { get; } = new();
     public FakeProbeService Probe { get; } = new();
@@ -33,6 +35,8 @@ internal sealed class MainWindowViewModelHarness
             NullLogger<AnalysisPipelineService>.Instance);
 
         return new MainWindowViewModel(
+            Updates,
+            Runtime,
             FfprobeLocator, pipeline,
             Prefs, Theme, Picker, Coord, Recent,
             TimeProvider,

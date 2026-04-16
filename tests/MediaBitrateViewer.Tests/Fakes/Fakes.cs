@@ -11,6 +11,46 @@ internal sealed class FakeFfprobeLocator(bool available) : IFfprobeLocator
         new(new FfprobeLocation(available ? "ffprobe" : null, available, available ? "ffprobe-fake" : null));
 }
 
+internal sealed class FakeAppUpdateService : IAppUpdateService
+{
+    private string _buttonText = string.Empty;
+
+    public event EventHandler? StateChanged;
+
+    public bool IsUpdateReadyToInstall { get; private set; }
+    public string UpdateButtonText => _buttonText;
+    public int StartCalls { get; private set; }
+    public int ApplyCalls { get; private set; }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        StartCalls++;
+        return Task.CompletedTask;
+    }
+
+    public void ApplyPendingUpdateAndRestart()
+    {
+        ApplyCalls++;
+    }
+
+    public void ShowTestUpdateNotification()
+    {
+        SetPendingUpdate("9.9.9-debug");
+    }
+
+    public void SetPendingUpdate(string? version)
+    {
+        IsUpdateReadyToInstall = !string.IsNullOrWhiteSpace(version);
+        _buttonText = IsUpdateReadyToInstall ? $"Restart to install {version}" : string.Empty;
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+}
+
+internal sealed class FakeAppRuntimeInfo : IAppRuntimeInfo
+{
+    public bool IsDevelopmentEnvironment { get; set; }
+}
+
 internal sealed class FakeFingerprintService : IFileFingerprintService
 {
     public ValueTask<FileFingerprint> ComputeAsync(string filePath, CancellationToken cancellationToken) =>

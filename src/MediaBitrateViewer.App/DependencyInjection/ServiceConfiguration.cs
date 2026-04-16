@@ -1,3 +1,4 @@
+using MediaBitrateViewer.App.Configuration;
 using MediaBitrateViewer.App.Services;
 using MediaBitrateViewer.Core.Abstractions;
 using MediaBitrateViewer.Core.Analysis;
@@ -6,8 +7,10 @@ using MediaBitrateViewer.Infrastructure.Cache;
 using MediaBitrateViewer.Infrastructure.Ffprobe;
 using MediaBitrateViewer.Infrastructure.Files;
 using MediaBitrateViewer.Infrastructure.Preferences;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace MediaBitrateViewer.App.DependencyInjection;
 
@@ -18,12 +21,16 @@ public static class ServiceConfiguration
     public static IServiceProvider BuildServiceProvider()
     {
         var services = new ServiceCollection();
-        ConfigureServices(services);
+        var configuration = BuildConfiguration();
+        ConfigureServices(services, configuration);
         return services.BuildServiceProvider();
     }
 
-    public static void ConfigureServices(IServiceCollection services)
+    public static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
         services.AddLogging(builder =>
         {
             builder
@@ -36,7 +43,13 @@ public static class ServiceConfiguration
                 .AddDebug();
         });
 
+        services.AddSingleton(configuration);
+        services
+            .AddOptions<UpdateSettings>()
+            .Bind(configuration.GetSection(UpdateSettings.SectionName));
+
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IAppRuntimeInfo, AppRuntimeInfo>();
 
         services.AddSingleton<IFfprobeLocator, FfprobeLocator>();
         services.AddSingleton<IFileFingerprintService, FileFingerprintService>();
@@ -61,11 +74,20 @@ public static class ServiceConfiguration
         services.AddSingleton<IFilePickerService, FilePickerService>();
         services.AddSingleton<IWindowCoordinator, WindowCoordinator>();
         services.AddSingleton<IRecentFilesService, RecentFilesService>();
+        services.AddSingleton<IAppUpdateService, VelopackUpdateService>();
 
         services.AddScoped<CursorReadoutViewModel>();
         services.AddScoped<StatisticsPanelViewModel>();
         services.AddScoped<StreamMetadataViewModel>();
         services.AddScoped<LoadingPanelViewModel>();
         services.AddScoped<MainWindowViewModel>();
+    }
+
+    private static IConfiguration BuildConfiguration()
+    {
+        return new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+            .Build();
     }
 }

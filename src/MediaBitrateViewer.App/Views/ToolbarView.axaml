@@ -6,113 +6,128 @@
              x:Class="MediaBitrateViewer.App.Views.ToolbarView"
              x:DataType="vm:MainWindowViewModel">
     <Border Classes="toolbar">
-        <StackPanel Orientation="Horizontal" Spacing="6">
-            <!-- Open file -->
-            <Button Command="{Binding OpenFileCommand}"
-                    ToolTip.Tip="Open video file (Ctrl+O)">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                <!-- Open file -->
+                <Button Command="{Binding OpenFileCommand}"
+                        ToolTip.Tip="Open video file (Ctrl+O)">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <i:Icon Value="mdi-folder-open-outline" />
+                        <TextBlock Text="Open file…" />
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding ReloadCommand}"
+                        ToolTip.Tip="Reload current file (Ctrl+R)">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <i:Icon Value="mdi-refresh" />
+                        <TextBlock Text="Reload" />
+                    </StackPanel>
+                </Button>
+
+                <Border Classes="toolbar-separator" />
+
+                <!-- Stream selector (hidden when only one video stream) -->
+                <TextBlock Classes="label" VerticalAlignment="Center" Text="Stream"
+                           IsVisible="{Binding HasMultipleStreams}" />
+                <ComboBox MinWidth="180"
+                          ItemsSource="{Binding VideoStreams}"
+                          SelectedItem="{Binding SelectedStream, Mode=TwoWay}"
+                          IsEnabled="{Binding HasFile}"
+                          IsVisible="{Binding HasMultipleStreams}"
+                          ToolTip.Tip="Select video stream">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="m:VideoStreamInfo">
+                            <TextBlock Text="{Binding DisplayLabel}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <Border Classes="toolbar-separator" IsVisible="{Binding HasMultipleStreams}" />
+
+                <!-- Graph mode -->
+                <TextBlock Classes="label" VerticalAlignment="Center" Text="Mode" />
+                <ComboBox MinWidth="140"
+                          ItemsSource="{Binding AllGraphModes}"
+                          SelectedItem="{Binding GraphMode, Mode=TwoWay}"
+                          ToolTip.Tip="Graph mode">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="m:GraphMode">
+                            <TextBlock Text="{Binding ., Converter={StaticResource EnumDisplay}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- Rolling window -->
+                <TextBlock Classes="label" VerticalAlignment="Center" Text="Window" IsVisible="{Binding HasWindowSetting}" />
+                <ComboBox MinWidth="100"
+                          ItemsSource="{Binding AllRollingWindows}"
+                          SelectedItem="{Binding RollingWindow, Mode=TwoWay}"
+                          IsVisible="{Binding HasWindowSetting}"
+                          ToolTip.Tip="Window size">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="m:RollingAverageWindow">
+                            <TextBlock Text="{Binding ., Converter={StaticResource EnumDisplay}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <Border Classes="toolbar-separator" />
+
+                <Button Command="{Binding ResetZoomCommand}"
+                        ToolTip.Tip="Reset zoom">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <i:Icon Value="mdi-magnify-scan" />
+                        <TextBlock Text="Reset zoom" />
+                    </StackPanel>
+                </Button>
+
+                <TextBlock Classes="label" VerticalAlignment="Center" Text="Y-Zoom" />
+
+                <Button Command="{Binding YZoomOutCommand}"
+                        ToolTip.Tip="Y-axis zoom out">
+                    <i:Icon Value="mdi-magnify-minus-outline" />
+                </Button>
+
+                <Button Command="{Binding YZoomInCommand}"
+                        ToolTip.Tip="Y-axis zoom in — cuts off peak values">
+                    <i:Icon Value="mdi-magnify-plus-outline" />
+                </Button>
+
+                <Button Command="{Binding CancelAnalysisCommand}"
+                        ToolTip.Tip="Cancel running analysis"
+                        IsVisible="{Binding LoadingPanel.IsVisible}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <i:Icon Value="mdi-stop-circle-outline" Foreground="{DynamicResource ErrorBrush}" />
+                        <TextBlock Text="Cancel" />
+                    </StackPanel>
+                </Button>
+
+                <Border Classes="toolbar-separator" />
+
+                <!-- Clear cache for current file -->
+                <Button Command="{Binding ClearCurrentFileCacheCommand}"
+                        ToolTip.Tip="Clear cache for current file">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <i:Icon Value="mdi-database-remove-outline" />
+                        <TextBlock Text="Clear cache" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Classes="toolbar-chip"
+                    Command="{Binding InstallUpdateCommand}"
+                    IsVisible="{Binding IsUpdateReadyToInstall}"
+                    HorizontalAlignment="Right"
+                    ToolTip.Tip="A new version has already been downloaded. Click to restart and install it.">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <i:Icon Value="mdi-folder-open-outline" />
-                    <TextBlock Text="Open file…" />
+                    <i:Icon Value="mdi-update"
+                            FontSize="14"
+                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                    <TextBlock Text="{Binding UpdateButtonText}" />
                 </StackPanel>
             </Button>
-
-            <Button Command="{Binding ReloadCommand}"
-                    ToolTip.Tip="Reload current file (Ctrl+R)">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <i:Icon Value="mdi-refresh" />
-                    <TextBlock Text="Reload" />
-                </StackPanel>
-            </Button>
-
-            <Border Classes="toolbar-separator" />
-
-            <!-- Stream selector (hidden when only one video stream) -->
-            <TextBlock Classes="label" VerticalAlignment="Center" Text="Stream"
-                       IsVisible="{Binding HasMultipleStreams}" />
-            <ComboBox MinWidth="180"
-                      ItemsSource="{Binding VideoStreams}"
-                      SelectedItem="{Binding SelectedStream, Mode=TwoWay}"
-                      IsEnabled="{Binding HasFile}"
-                      IsVisible="{Binding HasMultipleStreams}"
-                      ToolTip.Tip="Select video stream">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate DataType="m:VideoStreamInfo">
-                        <TextBlock Text="{Binding DisplayLabel}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-
-            <Border Classes="toolbar-separator" IsVisible="{Binding HasMultipleStreams}" />
-
-            <!-- Graph mode -->
-            <TextBlock Classes="label" VerticalAlignment="Center" Text="Mode" />
-            <ComboBox MinWidth="140"
-                      ItemsSource="{Binding AllGraphModes}"
-                      SelectedItem="{Binding GraphMode, Mode=TwoWay}"
-                      ToolTip.Tip="Graph mode">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate DataType="m:GraphMode">
-                        <TextBlock Text="{Binding ., Converter={StaticResource EnumDisplay}}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-
-            <!-- Rolling window -->
-            <TextBlock Classes="label" VerticalAlignment="Center" Text="Window" IsVisible="{Binding HasWindowSetting}" />
-            <ComboBox MinWidth="100"
-                      ItemsSource="{Binding AllRollingWindows}"
-                      SelectedItem="{Binding RollingWindow, Mode=TwoWay}"
-                      IsVisible="{Binding HasWindowSetting}"
-                      ToolTip.Tip="Window size">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate DataType="m:RollingAverageWindow">
-                        <TextBlock Text="{Binding ., Converter={StaticResource EnumDisplay}}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-
-            <Border Classes="toolbar-separator" />
-
-            <Button Command="{Binding ResetZoomCommand}"
-                    ToolTip.Tip="Reset zoom">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <i:Icon Value="mdi-magnify-scan" />
-                    <TextBlock Text="Reset zoom" />
-                </StackPanel>
-            </Button>
-
-            <TextBlock Classes="label" VerticalAlignment="Center" Text="Y-Zoom" />
-            
-            <Button Command="{Binding YZoomOutCommand}"
-                    ToolTip.Tip="Y-axis zoom out">
-                <i:Icon Value="mdi-magnify-minus-outline" />
-            </Button>
-
-            <Button Command="{Binding YZoomInCommand}"
-                    ToolTip.Tip="Y-axis zoom in — cuts off peak values">
-                <i:Icon Value="mdi-magnify-plus-outline" />
-            </Button>
-
-            <Button Command="{Binding CancelAnalysisCommand}"
-                    ToolTip.Tip="Cancel running analysis"
-                    IsVisible="{Binding LoadingPanel.IsVisible}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <i:Icon Value="mdi-stop-circle-outline" Foreground="{DynamicResource ErrorBrush}" />
-                    <TextBlock Text="Cancel" />
-                </StackPanel>
-            </Button>
-
-            <Border Classes="toolbar-separator" />
-
-            <!-- Clear cache for current file -->
-            <Button Command="{Binding ClearCurrentFileCacheCommand}"
-                    ToolTip.Tip="Clear cache for current file">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <i:Icon Value="mdi-database-remove-outline" />
-                    <TextBlock Text="Clear cache" />
-                </StackPanel>
-            </Button>
-
-        </StackPanel>
+        </Grid>
     </Border>
 </UserControl>

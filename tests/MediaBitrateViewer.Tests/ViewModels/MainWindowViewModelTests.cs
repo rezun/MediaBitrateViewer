@@ -194,4 +194,58 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(ThemeMode.Dark, harness.Theme.CurrentMode);
         Assert.Equal(ThemeMode.Dark, harness.Prefs.Current.Theme);
     }
+
+    [Fact]
+    public void UpdateStateChange_RefreshesToolbarProperties()
+    {
+        var harness = new MainWindowViewModelHarness();
+        var vm = harness.Build();
+
+        Assert.False(vm.IsUpdateReadyToInstall);
+        Assert.False(vm.InstallUpdateCommand.CanExecute(null));
+
+        harness.Updates.SetPendingUpdate("1.2.3");
+
+        Assert.True(vm.IsUpdateReadyToInstall);
+        Assert.Equal("Restart to install 1.2.3", vm.UpdateButtonText);
+        Assert.True(vm.InstallUpdateCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void InstallUpdate_DelegatesToUpdateService()
+    {
+        var harness = new MainWindowViewModelHarness();
+        var vm = harness.Build();
+        harness.Updates.SetPendingUpdate("1.2.3");
+
+        vm.InstallUpdateCommand.Execute(null);
+
+        Assert.Equal(1, harness.Updates.ApplyCalls);
+    }
+
+    [Fact]
+    public void ShowTestUpdateNotification_InDevelopment_ShowsUpdateBanner()
+    {
+        var harness = new MainWindowViewModelHarness();
+        harness.Runtime.IsDevelopmentEnvironment = true;
+        var vm = harness.Build();
+
+        Assert.True(vm.ShowTestUpdateNotificationCommand.CanExecute(null));
+
+        vm.ShowTestUpdateNotificationCommand.Execute(null);
+
+        Assert.True(vm.IsUpdateReadyToInstall);
+        Assert.Equal("Restart to install 9.9.9-debug", vm.UpdateButtonText);
+    }
+
+    [Fact]
+    public void ShowTestUpdateNotification_OutsideDevelopment_IsDisabled()
+    {
+        var harness = new MainWindowViewModelHarness();
+        harness.Runtime.IsDevelopmentEnvironment = false;
+        var vm = harness.Build();
+
+        Assert.False(vm.IsDevelopmentEnvironment);
+        Assert.False(vm.ShowTestUpdateNotificationCommand.CanExecute(null));
+    }
 }

@@ -22,6 +22,16 @@ From the repo root:
 dotnet run --project src/MediaBitrateViewer.App
 ```
 
+## Publishing Releases
+
+Push a semver tag such as `v1.2.3` and GitHub Actions will:
+
+- build self-contained Velopack releases for `win-x64`, `osx-arm64`, `osx-x64`, `linux-x64`, and `linux-arm64`
+- generate update packages (`.nupkg`) plus platform installers/bundles
+- publish all assets to the matching GitHub Release for that tag
+
+The app checks GitHub Releases for updates on startup and then again on the interval configured in [appsettings.json](src/MediaBitrateViewer.App/appsettings.json).
+
 ## Loading a file
 
 - **Drag and drop** a video file onto the window

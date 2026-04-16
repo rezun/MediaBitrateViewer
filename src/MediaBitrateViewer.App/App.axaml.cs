@@ -23,6 +23,9 @@ public partial class App : Application
     {
         Services = ServiceConfiguration.BuildServiceProvider();
 
+        var updateService = Services.GetRequiredService<IAppUpdateService>();
+        _ = updateService.StartAsync(CancellationToken.None);
+
         if (TryGetFeature(typeof(IActivatableLifetime)) is IActivatableLifetime activatable)
             activatable.Activated += OnAppActivated;
 
@@ -40,10 +43,7 @@ public partial class App : Application
             if (argPaths.Count > 0)
                 OpenFiles(argPaths);
 
-            desktop.ShutdownRequested += (_, _) =>
-            {
-                if (Services is IDisposable d) d.Dispose();
-            };
+            desktop.ShutdownRequested += (_, _) => DisposeServices();
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -85,5 +85,20 @@ public partial class App : Application
                 continue;
             coordinator.OpenWindowFor(paths[i]);
         }
+    }
+
+    private void DisposeServices()
+    {
+        var services = Services;
+        Services = null;
+
+        if (services is IAsyncDisposable asyncDisposable)
+        {
+            asyncDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            return;
+        }
+
+        if (services is IDisposable disposable)
+            disposable.Dispose();
     }
 }

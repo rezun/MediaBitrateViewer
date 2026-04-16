@@ -12,6 +12,8 @@ namespace MediaBitrateViewer.Core.ViewModels;
 
 public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializable, IAsyncDisposable
 {
+    private readonly IAppUpdateService _appUpdateService;
+    private readonly IAppRuntimeInfo _appRuntimeInfo;
     private readonly IFfprobeLocator _ffprobeLocator;
     private readonly IAnalysisPipelineService _pipeline;
     private readonly IUserPreferencesStore _preferencesStore;
@@ -70,11 +72,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
 
     public bool HasFile => ProbedFile is not null;
     public bool HasMultipleStreams => VideoStreams.Count > 1;
+    public bool IsDevelopmentEnvironment => _appRuntimeInfo.IsDevelopmentEnvironment;
     public bool ShowFfprobeMissingError => Status == WorkflowStatus.FfprobeMissing;
     public bool ShowGenericError =>
         Status is WorkflowStatus.ProbeFailed or WorkflowStatus.NoVideoStreams or WorkflowStatus.FrameAnalysisFailed;
     public bool ShowIdleHint => Status == WorkflowStatus.Idle;
     public bool HasWindowSetting => GraphMode is GraphMode.RollingAverage or GraphMode.PeakEnvelope;
+    public bool IsUpdateReadyToInstall => _appUpdateService.IsUpdateReadyToInstall;
+    public string UpdateButtonText => _appUpdateService.UpdateButtonText;
     public string FfprobeVersionDisplay =>
         _ffprobeLocation?.VersionString ?? string.Empty;
 
@@ -83,6 +88,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     public event EventHandler<double>? YZoomChanged;
 
     public MainWindowViewModel(
+        IAppUpdateService appUpdateService,
+        IAppRuntimeInfo appRuntimeInfo,
         IFfprobeLocator ffprobeLocator,
         IAnalysisPipelineService pipeline,
         IUserPreferencesStore preferencesStore,
@@ -97,6 +104,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         StreamMetadataViewModel streamMetadata,
         LoadingPanelViewModel loadingPanel)
     {
+        ArgumentNullException.ThrowIfNull(appUpdateService);
+        ArgumentNullException.ThrowIfNull(appRuntimeInfo);
         ArgumentNullException.ThrowIfNull(ffprobeLocator);
         ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(preferencesStore);
@@ -107,6 +116,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _appUpdateService = appUpdateService;
+        _appRuntimeInfo = appRuntimeInfo;
         _ffprobeLocator = ffprobeLocator;
         _pipeline = pipeline;
         _preferencesStore = preferencesStore;
@@ -120,6 +131,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         Statistics = statistics;
         StreamMetadata = streamMetadata;
         LoadingPanel = loadingPanel;
+
+        _appUpdateService.StateChanged += OnAppUpdateStateChanged;
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken)
@@ -400,6 +413,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         ResetZoomToFit();
     }
 
+    [RelayCommand(CanExecute = nameof(CanInstallUpdate))]
+    private void InstallUpdate()
+    {
+        _appUpdateService.ApplyPendingUpdateAndRestart();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanShowTestUpdateNotification))]
+    private void ShowTestUpdateNotification()
+    {
+        _appUpdateService.ShowTestUpdateNotification();
+    }
+
     [RelayCommand(CanExecute = nameof(CanYZoomIn))]
     private void YZoomIn()
     {
@@ -421,6 +446,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
 
     private bool CanYZoomIn() => _yZoomLevel > MinYZoom && _series.Count > 0;
     private bool CanYZoomOut() => _yZoomLevel < 1.0 && _series.Count > 0;
+    private bool CanInstallUpdate() => _appUpdateService.IsUpdateReadyToInstall;
+    private bool CanShowTestUpdateNotification() => _appRuntimeInfo.IsDevelopmentEnvironment;
 
     private void ResetZoomToFit()
     {
@@ -593,7 +620,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     {
         if (_disposed) return ValueTask.CompletedTask;
         _disposed = true;
+        _appUpdateService.StateChanged -= OnAppUpdateStateChanged;
         CancelAnalysisInternal();
         return ValueTask.CompletedTask;
+    }
+
+    private void OnAppUpdateStateChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(IsUpdateReadyToInstall));
+        OnPropertyChanged(nameof(UpdateButtonText));
+        InstallUpdateCommand.NotifyCanExecuteChanged();
     }
 }
