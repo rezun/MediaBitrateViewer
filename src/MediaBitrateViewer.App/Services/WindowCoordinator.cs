@@ -50,6 +50,14 @@ public sealed class WindowCoordinator : IWindowCoordinator
 
         desktop.MainWindow = window;
         window.Show();
+
+        // macOS intermittently fails to sync the native menu on first launch.
+        // Re-activating the window after Show triggers makeKeyAndOrderFront:,
+        // which fires DoLayoutReset on the menu exporter once the native
+        // NSMenu is fully initialized.
+        if (OperatingSystem.IsMacOS())
+            Dispatcher.UIThread.Post(() => window.Activate());
+
         InitializeAsync(vm);
     }
 
