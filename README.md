@@ -32,6 +32,8 @@ Push a semver tag such as `v1.2.3` and GitHub Actions will:
 
 The app checks GitHub Releases for updates on startup and then again on the interval configured in [appsettings.json](src/MediaBitrateViewer.App/appsettings.json).
 
+For release builds, the workflow version is authoritative. The tag or manual workflow input version is passed into both `dotnet publish` and Velopack packaging, so it becomes the shipped app version and the update version. The `<Version>` in the `.csproj` is only the local/default fallback for non-release builds.
+
 ## Loading a file
 
 - **Drag and drop** a video file onto the window
