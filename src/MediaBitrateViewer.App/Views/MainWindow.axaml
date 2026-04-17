@@ -31,6 +31,17 @@
                         <NativeMenuItem Header="Reload"
                                         Command="{Binding ReloadCommand}"
                                         Gesture="{OnPlatform Default='Ctrl+R', macOS='Cmd+R'}" />
+                        <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="Application folders">
+                            <NativeMenuItem.Menu>
+                                <NativeMenu>
+                                    <NativeMenuItem Header="Open settings folder"
+                                                    Command="{Binding OpenSettingsFolderCommand}" />
+                                    <NativeMenuItem Header="Open cache folder"
+                                                    Command="{Binding OpenCacheFolderCommand}" />
+                                </NativeMenu>
+                            </NativeMenuItem.Menu>
+                        </NativeMenuItem>
                     </NativeMenu>
                 </NativeMenuItem.Menu>
             </NativeMenuItem>

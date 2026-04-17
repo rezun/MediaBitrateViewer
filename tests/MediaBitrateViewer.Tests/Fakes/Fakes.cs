@@ -319,3 +319,21 @@ internal sealed class FakeAppProgressService : IAppProgressService
     public void SetProgress(double fraction) => SetCalls.Add(fraction);
     public void Clear() => ClearCalls++;
 }
+
+internal sealed class FakeApplicationFoldersService : IApplicationFoldersService
+{
+    public int OpenSettingsCalls { get; private set; }
+    public int OpenCacheCalls { get; private set; }
+
+    public Task OpenSettingsFolderAsync()
+    {
+        OpenSettingsCalls++;
+        return Task.CompletedTask;
+    }
+
+    public Task OpenCacheFolderAsync()
+    {
+        OpenCacheCalls++;
+        return Task.CompletedTask;
+    }
+}

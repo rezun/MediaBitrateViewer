@@ -64,13 +64,18 @@ public static class ServiceConfiguration
             cacheRoot,
             sp.GetRequiredService<ILogger<AnalysisCache>>()));
 
-        var prefsPath = Path.Combine(
+        var settingsFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            AppDirectoryName,
-            "preferences.json");
+            AppDirectoryName);
+        var prefsPath = Path.Combine(settingsFolder, "preferences.json");
         services.AddSingleton<IUserPreferencesStore>(sp => new UserPreferencesStore(
             prefsPath,
             sp.GetRequiredService<ILogger<UserPreferencesStore>>()));
+
+        services.AddSingleton<IApplicationFoldersService>(sp => new ApplicationFoldersService(
+            settingsFolder,
+            cacheRoot,
+            sp.GetRequiredService<ILogger<ApplicationFoldersService>>()));
 
         services.AddSingleton<IThemeService, ThemeService>();
         services.AddSingleton<IUiDispatcher, UiDispatcher>();

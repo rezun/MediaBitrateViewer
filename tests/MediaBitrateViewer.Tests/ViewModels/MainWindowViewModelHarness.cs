@@ -28,6 +28,7 @@ internal sealed class MainWindowViewModelHarness
     public FakeWindowCoordinator Coord { get; } = new();
     public FakeRecentFilesService Recent { get; } = new();
     public FakeAppProgressService Progress { get; } = new();
+    public FakeApplicationFoldersService Folders { get; } = new();
     public TimeProvider TimeProvider { get; set; } = TimeProvider.System;
 
     public MainWindowViewModel Build()
@@ -42,7 +43,7 @@ internal sealed class MainWindowViewModelHarness
             Runtime,
             Version,
             FfprobeLocator, pipeline,
-            Prefs, Theme, Dispatcher, Picker, Coord, Recent, Progress,
+            Prefs, Theme, Dispatcher, Picker, Coord, Recent, Progress, Folders,
             TimeProvider,
             NullLogger<MainWindowViewModel>.Instance,
             new CursorReadoutViewModel(),

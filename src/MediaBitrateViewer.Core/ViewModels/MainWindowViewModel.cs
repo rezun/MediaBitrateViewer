@@ -24,6 +24,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     private readonly IWindowCoordinator _windowCoordinator;
     private readonly IRecentFilesService _recentFilesService;
     private readonly IAppProgressService _appProgressService;
+    private readonly IApplicationFoldersService _applicationFoldersService;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<MainWindowViewModel> _logger;
 
@@ -110,6 +111,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         IWindowCoordinator windowCoordinator,
         IRecentFilesService recentFilesService,
         IAppProgressService appProgressService,
+        IApplicationFoldersService applicationFoldersService,
         TimeProvider timeProvider,
         ILogger<MainWindowViewModel> logger,
         CursorReadoutViewModel cursorReadout,
@@ -129,6 +131,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         ArgumentNullException.ThrowIfNull(windowCoordinator);
         ArgumentNullException.ThrowIfNull(recentFilesService);
         ArgumentNullException.ThrowIfNull(appProgressService);
+        ArgumentNullException.ThrowIfNull(applicationFoldersService);
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -144,6 +147,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         _windowCoordinator = windowCoordinator;
         _recentFilesService = recentFilesService;
         _appProgressService = appProgressService;
+        _applicationFoldersService = applicationFoldersService;
         _timeProvider = timeProvider;
         _logger = logger;
         CursorReadout = cursorReadout;
@@ -198,6 +202,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     {
         await _recentFilesService.ClearAsync();
     }
+
+    [RelayCommand]
+    private Task OpenSettingsFolderAsync() => _applicationFoldersService.OpenSettingsFolderAsync();
+
+    [RelayCommand]
+    private Task OpenCacheFolderAsync() => _applicationFoldersService.OpenCacheFolderAsync();
 
     [RelayCommand]
     private void SetTheme(ThemeMode mode)
