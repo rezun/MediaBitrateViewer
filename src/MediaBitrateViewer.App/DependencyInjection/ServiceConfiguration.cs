@@ -1,5 +1,6 @@
 using MediaBitrateViewer.App.Configuration;
 using MediaBitrateViewer.App.Services;
+using MediaBitrateViewer.App.Services.Progress;
 using MediaBitrateViewer.Core.Abstractions;
 using MediaBitrateViewer.Core.Analysis;
 using MediaBitrateViewer.Core.ViewModels;
@@ -77,6 +78,16 @@ public static class ServiceConfiguration
         services.AddSingleton<IWindowCoordinator, WindowCoordinator>();
         services.AddSingleton<IRecentFilesService, RecentFilesService>();
         services.AddSingleton<IAppUpdateService, VelopackUpdateService>();
+        services.AddSingleton<IAppProgressService>(sp =>
+        {
+            if (OperatingSystem.IsWindows())
+                return ActivatorUtilities.CreateInstance<WindowsTaskbarProgressService>(sp);
+            if (OperatingSystem.IsMacOS())
+                return new MacOsDockBadgeProgressService();
+            if (OperatingSystem.IsLinux())
+                return ActivatorUtilities.CreateInstance<LinuxUnityLauncherProgressService>(sp);
+            return new NoOpAppProgressService();
+        });
 
         services.AddScoped<CursorReadoutViewModel>();
         services.AddScoped<StatisticsPanelViewModel>();

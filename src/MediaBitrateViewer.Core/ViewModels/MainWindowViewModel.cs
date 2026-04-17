@@ -23,6 +23,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     private readonly IFilePickerService _filePickerService;
     private readonly IWindowCoordinator _windowCoordinator;
     private readonly IRecentFilesService _recentFilesService;
+    private readonly IAppProgressService _appProgressService;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<MainWindowViewModel> _logger;
 
@@ -108,6 +109,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         IFilePickerService filePickerService,
         IWindowCoordinator windowCoordinator,
         IRecentFilesService recentFilesService,
+        IAppProgressService appProgressService,
         TimeProvider timeProvider,
         ILogger<MainWindowViewModel> logger,
         CursorReadoutViewModel cursorReadout,
@@ -126,6 +128,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         ArgumentNullException.ThrowIfNull(filePickerService);
         ArgumentNullException.ThrowIfNull(windowCoordinator);
         ArgumentNullException.ThrowIfNull(recentFilesService);
+        ArgumentNullException.ThrowIfNull(appProgressService);
         ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -140,6 +143,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         _filePickerService = filePickerService;
         _windowCoordinator = windowCoordinator;
         _recentFilesService = recentFilesService;
+        _appProgressService = appProgressService;
         _timeProvider = timeProvider;
         _logger = logger;
         CursorReadout = cursorReadout;
@@ -362,6 +366,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
                 _analysisCts = null;
             }
             cts.Dispose();
+            _appProgressService.Clear();
         }
     }
 
@@ -415,6 +420,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
             _frames.AddRange(frames);
             _sortedFrames = null;
             LoadingPanel.Progress = new AnalysisProgress(totalFrames, timestampSeconds, totalDuration);
+            if (LoadingPanel.FractionComplete is { } fraction)
+            {
+                _appProgressService.SetProgress(fraction);
+            }
             RecomputeSeries();
             RaiseGraphUpdated();
         }, cancellationToken);
@@ -485,6 +494,38 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     {
         ShowTransientStatus("Debug toast: transient notifications are working.");
     }
+
+    private bool _isNativeProgressTestRunning;
+    private static readonly TimeSpan NativeProgressTestDuration = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan NativeProgressTestInterval = TimeSpan.FromMilliseconds(50);
+
+    [RelayCommand(CanExecute = nameof(CanTestNativeProgress))]
+    private async Task TestNativeProgressAsync()
+    {
+        _isNativeProgressTestRunning = true;
+        TestNativeProgressCommand.NotifyCanExecuteChanged();
+        try
+        {
+            var start = _timeProvider.GetTimestamp();
+            while (true)
+            {
+                var elapsed = _timeProvider.GetElapsedTime(start);
+                var fraction = Math.Clamp(elapsed.TotalSeconds / NativeProgressTestDuration.TotalSeconds, 0.0, 1.0);
+                _appProgressService.SetProgress(fraction);
+                if (elapsed >= NativeProgressTestDuration) break;
+                await Task.Delay(NativeProgressTestInterval, _timeProvider, CancellationToken.None);
+            }
+        }
+        finally
+        {
+            _appProgressService.Clear();
+            _isNativeProgressTestRunning = false;
+            TestNativeProgressCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private bool CanTestNativeProgress() =>
+        _appRuntimeInfo.IsDevelopmentEnvironment && !_isNativeProgressTestRunning;
 
     [RelayCommand(CanExecute = nameof(CanYZoomIn))]
     private void YZoomIn()
@@ -627,6 +668,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         CursorReadout.Readout = Models.CursorReadout.Empty(GraphMode);
         LoadingPanel.IsVisible = false;
         LoadingPanel.Progress = default;
+        _appProgressService.Clear();
         YZoomInCommand.NotifyCanExecuteChanged();
         YZoomOutCommand.NotifyCanExecuteChanged();
     }

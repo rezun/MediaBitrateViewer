@@ -309,3 +309,13 @@ internal sealed class FakeWindowCoordinator : IWindowCoordinator
     public void OpenWindowFor(string filePath) => OpenedFiles.Add(filePath);
     public bool TryLoadInActiveEmptyWindow(string filePath) => false;
 }
+
+internal sealed class FakeAppProgressService : IAppProgressService
+{
+    public List<double> SetCalls { get; } = new();
+    public int ClearCalls { get; private set; }
+    public double? LastFraction => SetCalls.Count == 0 ? null : SetCalls[^1];
+
+    public void SetProgress(double fraction) => SetCalls.Add(fraction);
+    public void Clear() => ClearCalls++;
+}

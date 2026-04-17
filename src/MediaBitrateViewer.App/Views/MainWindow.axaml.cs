@@ -135,6 +135,11 @@ public partial class MainWindow : Window
             Command = vm.ShowTestToastCommand
         });
 
+        debugMenu.Menu.Items.Add(new NativeMenuItem("Test native progress")
+        {
+            Command = vm.TestNativeProgressCommand
+        });
+
         root.Items.Add(debugMenu);
     }
 

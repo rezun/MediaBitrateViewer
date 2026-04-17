@@ -214,6 +214,44 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task FrameAnalysis_ReportsProgressToAppProgressService_AndClearsOnCompletion()
+    {
+        var harness = new MainWindowViewModelHarness();
+        var vm = harness.Build();
+        await vm.InitializeAsync(CancellationToken.None);
+
+        await vm.LoadFileAsync("/tmp/sample.mp4");
+        await MainWindowViewModelHarness.WaitForStatusAsync(vm, WorkflowStatus.Ready);
+
+        Assert.NotEmpty(harness.Progress.SetCalls);
+        Assert.All(harness.Progress.SetCalls, f => Assert.InRange(f, 0.0, 1.0));
+        Assert.True(harness.Progress.ClearCalls >= 1);
+    }
+
+    [Fact]
+    public async Task FrameAnalysis_Canceled_ClearsAppProgress()
+    {
+        var harness = new MainWindowViewModelHarness();
+        harness.Frames.FramesToEmit = 10;
+        var hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        harness.Frames.HoldAfterFirstFrame = hold.Task;
+
+        var vm = harness.Build();
+        await vm.InitializeAsync(CancellationToken.None);
+        await vm.LoadFileAsync("/tmp/sample.mp4");
+
+        await harness.Frames.FirstFrameEmitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await MainWindowViewModelHarness.WaitForStatusAsync(vm, WorkflowStatus.RunningFrameAnalysis);
+
+        vm.CancelAnalysisCommand.Execute(null);
+        hold.TrySetResult();
+
+        await MainWindowViewModelHarness.WaitForStatusAsync(vm, WorkflowStatus.FrameAnalysisCanceled);
+
+        Assert.True(harness.Progress.ClearCalls >= 1);
+    }
+
+    [Fact]
     public async Task SetTheme_PersistsAndAppliesTheme()
     {
         var harness = new MainWindowViewModelHarness();
