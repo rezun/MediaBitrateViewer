@@ -26,7 +26,7 @@ dotnet run --project src/MediaBitrateViewer.App
 
 Push a semver tag such as `v1.2.3` and GitHub Actions will:
 
-- build self-contained Velopack releases for `win-x64`, `osx-arm64`, `osx-x64`, `linux-x64`, and `linux-arm64`
+- build self-contained Velopack releases for `win-x64`, `win-arm64`, `osx-arm64`, `osx-x64`, `linux-x64`, and `linux-arm64`
 - generate update packages (`.nupkg`) plus platform installers/bundles
 - publish all assets to the matching GitHub Release for that tag
 

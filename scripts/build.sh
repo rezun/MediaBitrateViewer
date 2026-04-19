@@ -7,7 +7,7 @@ DIST_DIR="$SCRIPT_DIR/dist"
 PACKAGING_DIR="$SCRIPT_DIR/packaging"
 APP_NAME="MediaBitrateViewer"
 ASSEMBLY_NAME="MediaBitrateViewer.App"
-DEFAULT_RIDS=("win-x64" "osx-arm64" "osx-x64" "linux-x64" "linux-arm64")
+DEFAULT_RIDS=("win-x64" "win-arm64" "osx-arm64" "osx-x64" "linux-x64" "linux-arm64")
 
 VERSION=""
 RIDS=()
@@ -19,7 +19,7 @@ usage() {
     echo "Options:"
     echo "  --version, -v   Set the version (default: read from csproj)"
     echo "  --rid, -r       Build for a specific RID (default: all)"
-    echo "                  Available: win-x64, osx-arm64, osx-x64, linux-x64, linux-arm64"
+    echo "                  Available: win-x64, win-arm64, osx-arm64, osx-x64, linux-x64, linux-arm64"
     echo "  --deploy-mac    Build osx-arm64 slim and deploy to /Applications/$APP_NAME.app"
     echo ""
     echo "Examples:"

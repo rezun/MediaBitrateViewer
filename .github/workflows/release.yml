@@ -40,6 +40,12 @@ jobs:
             main_exe: MediaBitrateViewer.App.exe
             icon: packaging/windows/mediabitrateviewer.ico
             pack_args: ""
+          - os: windows-latest
+            rid: win-arm64
+            channel: win-arm64
+            main_exe: MediaBitrateViewer.App.exe
+            icon: packaging/windows/mediabitrateviewer.ico
+            pack_args: ""
           - os: macos-latest
             rid: osx-arm64
             channel: osx-arm64
