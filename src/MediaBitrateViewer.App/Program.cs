@@ -1,6 +1,7 @@
 using Avalonia;
 using Projektanker.Icons.Avalonia;
 using Projektanker.Icons.Avalonia.MaterialDesign;
+using MediaBitrateViewer.App.Services;
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -15,6 +16,9 @@ internal static class Program
     {
         VelopackApp.Build()
             .SetAutoApplyOnStartup(false)
+            .OnFirstRun(_ => WindowsFileAssociationRegistrar.RegisterCurrentInstallation())
+            .OnRestarted(_ => WindowsFileAssociationRegistrar.RegisterCurrentInstallation())
+            .OnBeforeUninstallFastCallback(_ => WindowsFileAssociationRegistrar.UnregisterCurrentInstallation())
             .Run();
 
         EnsureBundledLaunchPath();

@@ -39,6 +39,7 @@ For release builds, the workflow version is authoritative. The tag or manual wor
 - **Drag and drop** a video file onto the window
 - **File → Open File…** or **Ctrl/Cmd+O**
 - **File → Open Recent** (up to 10 recent files)
+- **Double-click / Open With** from your OS file manager for common video containers in installed builds
 - **Reload** the current file with **Ctrl/Cmd+R**
 
 Each file opens in its own window. Dropping onto a window that already has a file loaded opens a new window.

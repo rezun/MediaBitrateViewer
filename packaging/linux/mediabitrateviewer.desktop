@@ -6,3 +6,4 @@ Exec=MediaBitrateViewer.App %F
 Terminal=false
 Type=Application
 Categories=AudioVideo;Video;
+MimeType=video/mp4;video/x-matroska;video/webm;video/quicktime;video/x-msvideo;video/mp2t;video/mpeg;video/x-flv;video/x-ms-wmv;video/x-ms-asf;video/3gpp;video/3gpp2;video/ogg;application/mxf;

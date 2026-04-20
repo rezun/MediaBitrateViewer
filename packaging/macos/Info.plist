@@ -27,11 +27,33 @@
     <array>
         <dict>
             <key>CFBundleTypeName</key>
-            <string>Video File</string>
+            <string>Common Video Container</string>
             <key>CFBundleTypeRole</key>
             <string>Viewer</string>
             <key>LSHandlerRank</key>
             <string>Alternate</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>mp4</string>
+                <string>m4v</string>
+                <string>mkv</string>
+                <string>webm</string>
+                <string>mov</string>
+                <string>avi</string>
+                <string>ts</string>
+                <string>mts</string>
+                <string>m2ts</string>
+                <string>mpg</string>
+                <string>mpeg</string>
+                <string>mpe</string>
+                <string>flv</string>
+                <string>wmv</string>
+                <string>asf</string>
+                <string>3gp</string>
+                <string>3g2</string>
+                <string>ogv</string>
+                <string>mxf</string>
+            </array>
             <key>LSItemContentTypes</key>
             <array>
                 <string>public.movie</string>
