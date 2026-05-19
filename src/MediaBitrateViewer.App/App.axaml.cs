@@ -32,7 +32,6 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var coordinator = Services.GetRequiredService<IWindowCoordinator>();
-            coordinator.OpenInitialWindow();
 
             // Windows/Linux deliver dropped-on-icon and Explorer-opened files as
             // process args. macOS uses IActivatableLifetime instead (see below),
@@ -40,8 +39,9 @@ public partial class App : Application
             // filter in CollectVideoPaths is what keeps a `dotnet App.dll` dev
             // launch from being treated as a video open.
             var argPaths = CollectVideoPaths(desktop.Args ?? Array.Empty<string>());
-            if (argPaths.Count > 0)
-                OpenFiles(argPaths);
+            coordinator.OpenInitialWindow(argPaths.Count > 0 ? argPaths[0] : null);
+            if (argPaths.Count > 1)
+                OpenFiles(argPaths.Skip(1).ToArray());
 
             desktop.ShutdownRequested += (_, _) => DisposeServices();
         }

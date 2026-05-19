@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MediaBitrateViewer.Core.Abstractions;
@@ -32,7 +33,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     private static readonly TimeSpan TransientStatusDuration = TimeSpan.FromSeconds(4);
     private static readonly TimeSpan TransientStatusFadeDuration = TimeSpan.FromMilliseconds(220);
 
-    private CancellationTokenSource? _analysisCts;
+    private CancellationTokenSource? _workflowCts;
     private ITimer? _transientStatusTimer;
     private readonly List<FrameRecord> _frames = new();
     private IReadOnlyList<FrameRecord>? _sortedFrames;
@@ -40,6 +41,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
     private FfprobeLocation? _ffprobeLocation;
     private bool _disposed;
     private double _yZoomLevel = 1.0;
+    private long _workflowVersion;
 
     [ObservableProperty] private string _windowTitle = "Media Bitrate Viewer";
     [ObservableProperty] private string? _filePath;
@@ -236,7 +238,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
 
         if (Status == WorkflowStatus.FfprobeMissing) return;
 
-        CancelAnalysisInternal();
+        var operation = BeginWorkflowOperation();
 
         FilePath = path;
         FileDisplayName = Path.GetFileName(path);
@@ -248,12 +250,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         try
         {
             Status = WorkflowStatus.ProbingFile;
-            var probe = await _pipeline.ProbeAsync(path, CancellationToken.None);
+            var probe = await _pipeline.ProbeAsync(path, operation.Token);
+            EnsureWorkflowOperationIsCurrent(operation);
 
             ProbedFile = probe;
             StreamMetadata.File = probe;
 
             await _recentFilesService.AddAsync(path);
+            EnsureWorkflowOperationIsCurrent(operation);
 
             if (probe.VideoStreams.Count == 0)
             {
@@ -275,11 +279,19 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
             Status = WorkflowStatus.ProbeFailed;
             ErrorMessage = $"Could not probe the file: {ex.Message}";
         }
+        catch (OperationCanceledException) when (!IsCurrentWorkflowOperation(operation.Version) || operation.Token.IsCancellationRequested)
+        {
+            // Superseded by a newer file/stream request or explicitly canceled.
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error probing {Path}", path);
             Status = WorkflowStatus.ProbeFailed;
             ErrorMessage = $"Unexpected error: {ex.Message}";
+        }
+        finally
+        {
+            ReleaseWorkflowOperationIfCurrent(operation.Version);
         }
     }
 
@@ -288,21 +300,23 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         StreamMetadata.Stream = value;
         if (value is null || ProbedFile is null) return;
 
+        var operation = BeginWorkflowOperation();
+
         // Fire and forget by design: selection change triggers async analysis.
         // We wrap in try/catch to log any uncaught exception.
-        _ = StartAnalysisAsync(ProbedFile, value);
+        _ = StartAnalysisAsync(ProbedFile, value, operation);
     }
 
-    private async Task StartAnalysisAsync(ProbedMediaFile probe, VideoStreamInfo stream)
+    private async Task StartAnalysisAsync(ProbedMediaFile probe, VideoStreamInfo stream, WorkflowOperation operation)
     {
         try
         {
-            CancelAnalysisInternal();
             ResetSeries();
 
             KnownDurationSeconds = stream.Duration?.TotalSeconds ?? probe.Duration?.TotalSeconds;
 
-            var cached = await _pipeline.TryGetCachedAnalysisAsync(probe.Fingerprint, stream.Index, CancellationToken.None);
+            var cached = await _pipeline.TryGetCachedAnalysisAsync(probe.Fingerprint, stream.Index, operation.Token);
+            EnsureWorkflowOperationIsCurrent(operation);
             if (cached is not null)
             {
                 Status = WorkflowStatus.LoadingCachedAnalysis;
@@ -315,7 +329,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
                 return;
             }
 
-            await RunFrameAnalysisAsync(probe, stream);
+            await RunFrameAnalysisAsync(probe, stream, operation);
+        }
+        catch (OperationCanceledException) when (!IsCurrentWorkflowOperation(operation.Version) || operation.Token.IsCancellationRequested)
+        {
+            // Superseded by a newer selection/load or explicitly canceled.
         }
         catch (Exception ex)
         {
@@ -323,9 +341,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
             Status = WorkflowStatus.FrameAnalysisFailed;
             ErrorMessage = $"Analysis error: {ex.Message}";
         }
+        finally
+        {
+            ReleaseWorkflowOperationIfCurrent(operation.Version);
+        }
     }
 
-    private async Task RunFrameAnalysisAsync(ProbedMediaFile probe, VideoStreamInfo stream)
+    private async Task RunFrameAnalysisAsync(ProbedMediaFile probe, VideoStreamInfo stream, WorkflowOperation operation)
     {
         Status = WorkflowStatus.RunningFrameAnalysis;
         LoadingPanel.IsVisible = true;
@@ -333,13 +355,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         var totalDuration = stream.Duration?.TotalSeconds ?? probe.Duration?.TotalSeconds;
         LoadingPanel.Progress = new AnalysisProgress(0, 0, totalDuration);
 
-        var cts = new CancellationTokenSource();
-        _analysisCts = cts;
         var observer = new FrameProgressObserver(this, totalDuration);
 
         try
         {
-            var result = await _pipeline.RunFrameAnalysisAsync(probe, stream, observer, cts.Token);
+            var result = await _pipeline.RunFrameAnalysisAsync(probe, stream, observer, operation.Token);
+            if (!IsCurrentWorkflowOperation(operation.Version))
+            {
+                return;
+            }
+
             await observer.FlushPendingAsync(CancellationToken.None);
 
             switch (result.Outcome)
@@ -371,11 +396,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         }
         finally
         {
-            if (_analysisCts == cts)
-            {
-                _analysisCts = null;
-            }
-            cts.Dispose();
+            ReleaseWorkflowOperationIfCurrent(operation.Version);
             _appProgressService.Clear();
         }
     }
@@ -447,7 +468,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
 
     private void CancelAnalysisInternal()
     {
-        var cts = _analysisCts;
+        var cts = _workflowCts;
         if (cts is not null && !cts.IsCancellationRequested)
         {
             try { cts.Cancel(); }
@@ -811,4 +832,45 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         OnPropertyChanged(nameof(UpdateButtonText));
         InstallUpdateCommand.NotifyCanExecuteChanged();
     }
+
+    private WorkflowOperation BeginWorkflowOperation()
+    {
+        var previous = _workflowCts;
+        if (previous is not null)
+        {
+            try { previous.Cancel(); }
+            catch (ObjectDisposedException) { /* already disposed */ }
+            previous.Dispose();
+        }
+
+        var cts = new CancellationTokenSource();
+        _workflowCts = cts;
+        var version = Interlocked.Increment(ref _workflowVersion);
+        return new WorkflowOperation(version, cts.Token);
+    }
+
+    private bool IsCurrentWorkflowOperation(long version) =>
+        Volatile.Read(ref _workflowVersion) == version;
+
+    private void EnsureWorkflowOperationIsCurrent(WorkflowOperation operation)
+    {
+        operation.Token.ThrowIfCancellationRequested();
+        if (!IsCurrentWorkflowOperation(operation.Version))
+        {
+            throw new OperationCanceledException(operation.Token);
+        }
+    }
+
+    private void ReleaseWorkflowOperationIfCurrent(long version)
+    {
+        if (_workflowCts is null || !IsCurrentWorkflowOperation(version))
+        {
+            return;
+        }
+
+        _workflowCts.Dispose();
+        _workflowCts = null;
+    }
+
+    private readonly record struct WorkflowOperation(long Version, CancellationToken Token);
 }

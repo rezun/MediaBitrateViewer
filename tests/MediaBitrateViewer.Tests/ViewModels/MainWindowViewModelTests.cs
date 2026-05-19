@@ -214,6 +214,56 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task SwitchingStreams_CancelsStaleCachedLookup_BeforeItCanOverwriteCurrentSeries()
+    {
+        var harness = new MainWindowViewModelHarness();
+        var fingerprint = await harness.Fingerprint.ComputeAsync("/tmp/sample.mp4", CancellationToken.None);
+        var staleLookupGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var stream0Frames = new[]
+        {
+            new FrameRecord { TimestampSeconds = 0.00, DurationSeconds = 0.04, PacketSizeBytes = 1111 }
+        };
+        var stream1Frames = new[]
+        {
+            new FrameRecord { TimestampSeconds = 0.00, DurationSeconds = 0.04, PacketSizeBytes = 2222 },
+            new FrameRecord { TimestampSeconds = 0.04, DurationSeconds = 0.04, PacketSizeBytes = 3333 }
+        };
+
+        harness.Cache.SeedCompletedFrameAnalysis(fingerprint, videoStreamIndex: 0, stream0Frames);
+        harness.Cache.SeedCompletedFrameAnalysis(fingerprint, videoStreamIndex: 1, stream1Frames);
+        harness.Cache.TryGetFramesOverride = async (fp, streamIndex, cancellationToken) =>
+        {
+            if (streamIndex == 0)
+            {
+                await staleLookupGate.Task.WaitAsync(cancellationToken);
+            }
+
+            return streamIndex switch
+            {
+                0 => new CachedFrameAnalysis(fp, 0, stream0Frames, DateTimeOffset.UnixEpoch),
+                1 => new CachedFrameAnalysis(fp, 1, stream1Frames, DateTimeOffset.UnixEpoch),
+                _ => null
+            };
+        };
+
+        var vm = harness.Build();
+        await vm.InitializeAsync(CancellationToken.None);
+        await vm.LoadFileAsync("/tmp/sample.mp4");
+
+        vm.SelectedStream = vm.VideoStreams[1];
+        await MainWindowViewModelHarness.WaitForStatusAsync(vm, WorkflowStatus.Ready);
+
+        staleLookupGate.TrySetResult();
+        await Task.Delay(100);
+
+        Assert.Equal(1, vm.SelectedStream!.Index);
+        Assert.Equal(stream1Frames.Length, vm.Frames.Count);
+        Assert.Equal(stream1Frames[0].PacketSizeBytes, vm.Frames[0].PacketSizeBytes);
+        Assert.Equal(stream1Frames[1].PacketSizeBytes, vm.Frames[1].PacketSizeBytes);
+    }
+
+    [Fact]
     public async Task FrameAnalysis_ReportsProgressToAppProgressService_AndClearsOnCompletion()
     {
         var harness = new MainWindowViewModelHarness();

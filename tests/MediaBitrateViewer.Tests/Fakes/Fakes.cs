@@ -150,6 +150,7 @@ internal sealed class FakeCache : IAnalysisCache
     private readonly Dictionary<string, CachedFrameAnalysis> _frames = new();
 
     public int ClearFileCalls { get; private set; }
+    public Func<FileFingerprint, int, CancellationToken, ValueTask<CachedFrameAnalysis?>>? TryGetFramesOverride { get; set; }
 
     private static string ProbeKey(FileFingerprint fp) => fp.ToCacheKey();
     private static string FramesKey(FileFingerprint fp, int idx) => $"{fp.ToCacheKey()}|{idx}";
@@ -164,7 +165,12 @@ internal sealed class FakeCache : IAnalysisCache
     }
 
     public ValueTask<CachedFrameAnalysis?> TryGetCompleteFrameAnalysisAsync(FileFingerprint fingerprint, int videoStreamIndex, CancellationToken cancellationToken)
-        => new(_frames.TryGetValue(FramesKey(fingerprint, videoStreamIndex), out var v) ? v : null);
+    {
+        if (TryGetFramesOverride is not null)
+            return TryGetFramesOverride(fingerprint, videoStreamIndex, cancellationToken);
+
+        return new ValueTask<CachedFrameAnalysis?>(_frames.TryGetValue(FramesKey(fingerprint, videoStreamIndex), out var v) ? v : null);
+    }
 
     public IFrameCacheWriter BeginFrameAnalysis(FileFingerprint fingerprint, int videoStreamIndex, TimeProvider timeProvider)
         => new Writer(this, fingerprint, videoStreamIndex);
@@ -305,7 +311,12 @@ internal sealed class FakeWindowCoordinator : IWindowCoordinator
 {
     public List<string> OpenedFiles { get; } = new();
     public bool InitialOpened { get; private set; }
-    public void OpenInitialWindow() => InitialOpened = true;
+    public string? InitialFilePath { get; private set; }
+    public void OpenInitialWindow(string? initialFilePath = null)
+    {
+        InitialOpened = true;
+        InitialFilePath = initialFilePath;
+    }
     public void OpenWindowFor(string filePath) => OpenedFiles.Add(filePath);
     public bool TryLoadInActiveEmptyWindow(string filePath) => false;
 }

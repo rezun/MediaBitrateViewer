@@ -30,7 +30,7 @@ public sealed class WindowCoordinator : IWindowCoordinator
         _logger = logger;
     }
 
-    public void OpenInitialWindow()
+    public void OpenInitialWindow(string? initialFilePath = null)
     {
         if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
             return;
@@ -58,7 +58,14 @@ public sealed class WindowCoordinator : IWindowCoordinator
         if (OperatingSystem.IsMacOS())
             Dispatcher.UIThread.Post(() => window.Activate());
 
-        InitializeAsync(vm);
+        if (string.IsNullOrEmpty(initialFilePath))
+        {
+            InitializeAsync(vm);
+        }
+        else
+        {
+            InitializeAndLoadAsync(vm, initialFilePath);
+        }
     }
 
     private void InitializeAsync(MainWindowViewModel vm)
