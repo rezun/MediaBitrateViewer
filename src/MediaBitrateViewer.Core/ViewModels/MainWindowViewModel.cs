@@ -712,11 +712,53 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
         // Codecs with B-frames produce non-monotonic timestamps in decode order, so
         // we must sort before projecting or the scatter line zig-zags and the
         // duration-delta fallback is invalidated by out-of-order neighbors.
-        _sortedFrames = _frames.Count == 0
+        var sorted = _frames.Count == 0
             ? Array.Empty<FrameRecord>()
             : _frames.OrderBy(f => f.TimestampSeconds).ToArray();
 
+        // The app presents clip-relative time, not raw container PTS. Normalize the
+        // first valid presentation timestamp to zero so every graph mode shares the
+        // same x-axis origin even when media starts at a positive or negative offset.
+        _sortedFrames = NormalizeFrameTimestamps(sorted);
         return _sortedFrames;
+    }
+
+    private static IReadOnlyList<FrameRecord> NormalizeFrameTimestamps(IReadOnlyList<FrameRecord> frames)
+    {
+        if (frames.Count == 0)
+        {
+            return Array.Empty<FrameRecord>();
+        }
+
+        double? origin = null;
+        for (var i = 0; i < frames.Count; i++)
+        {
+            var timestamp = frames[i].TimestampSeconds;
+            if (double.IsFinite(timestamp))
+            {
+                origin = timestamp;
+                break;
+            }
+        }
+
+        if (origin is null || origin.Value == 0)
+        {
+            return frames;
+        }
+
+        var normalized = new FrameRecord[frames.Count];
+        for (var i = 0; i < frames.Count; i++)
+        {
+            var frame = frames[i];
+            normalized[i] = frame with
+            {
+                TimestampSeconds = double.IsFinite(frame.TimestampSeconds)
+                    ? frame.TimestampSeconds - origin.Value
+                    : frame.TimestampSeconds
+            };
+        }
+
+        return normalized;
     }
 
     private void RecomputeSeries()

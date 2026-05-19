@@ -264,6 +264,34 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task OffsetTimestamps_AreNormalizedConsistentlyAcrossGraphModes()
+    {
+        var harness = new MainWindowViewModelHarness();
+        var fingerprint = await harness.Fingerprint.ComputeAsync("/tmp/sample.mp4", CancellationToken.None);
+        var seededFrames = new[]
+        {
+            new FrameRecord { TimestampSeconds = 12.00, DurationSeconds = 0.04, PacketSizeBytes = 1200 },
+            new FrameRecord { TimestampSeconds = 12.04, DurationSeconds = 0.04, PacketSizeBytes = 1300 },
+            new FrameRecord { TimestampSeconds = 12.08, DurationSeconds = 0.04, PacketSizeBytes = 1400 }
+        };
+        harness.Cache.SeedCompletedFrameAnalysis(fingerprint, videoStreamIndex: 0, seededFrames);
+
+        var vm = harness.Build();
+        await vm.InitializeAsync(CancellationToken.None);
+        await vm.LoadFileAsync("/tmp/sample.mp4");
+        await MainWindowViewModelHarness.WaitForStatusAsync(vm, WorkflowStatus.Ready);
+
+        Assert.NotEmpty(vm.Series);
+        Assert.Equal(0.0, vm.Series[0].TimeSeconds, 6);
+
+        vm.GraphMode = GraphMode.PerFrame;
+
+        Assert.Equal(0.0, vm.Series[0].TimeSeconds, 6);
+        Assert.Equal(0.04, vm.Series[1].TimeSeconds, 6);
+        Assert.Equal(0.08, vm.Series[2].TimeSeconds, 6);
+    }
+
+    [Fact]
     public async Task FrameAnalysis_ReportsProgressToAppProgressService_AndClearsOnCompletion()
     {
         var harness = new MainWindowViewModelHarness();
