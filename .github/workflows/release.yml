@@ -164,9 +164,19 @@ jobs:
           --outputDir Releases
           ${{ matrix.pack_args }}
 
-      - name: Remove unneeded Velopack metadata files
+      - name: Prepare GitHub release assets
         shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_CHANNEL: ${{ matrix.channel }}
         run: |
+          python3 scripts/sanitize_velopack_release.py
+
+          find Releases -maxdepth 1 -type f \( -name "${{ env.PACK_ID }}-*-full.nupkg" -o -name "${{ env.PACK_ID }}-*-delta.nupkg" \) \
+            ! -name "${{ env.PACK_ID }}-${RELEASE_VERSION}-${RELEASE_CHANNEL}-full.nupkg" \
+            ! -name "${{ env.PACK_ID }}-${RELEASE_VERSION}-${RELEASE_CHANNEL}-delta.nupkg" \
+            -delete
+
           find Releases -maxdepth 1 -type f \( -name 'assets.*.json' -o -name 'RELEASES*' \) -delete
 
       - name: Upload packaged artifacts

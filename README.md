@@ -22,17 +22,34 @@ From the repo root:
 dotnet run --project src/MediaBitrateViewer.App
 ```
 
-## Publishing Releases
+## Build and release
+
+GitHub Actions uses two workflows:
+
+- `CI` runs on pushes to `main`, pull requests, and manual dispatch. It restores, builds, and tests the solution.
+- `Release` runs when you push a semver tag such as `v1.2.3`, or when you trigger it manually from the Actions tab.
+
+The `main` branch is protected with required CI, linear history, and no force-push/delete. For a solo repo this is the pragmatic middle ground: normal pushes still work, but the branch has guardrails.
+
+### Publishing releases
 
 Push a semver tag such as `v1.2.3` and GitHub Actions will:
 
 - build self-contained Velopack releases for `win-x64`, `win-arm64`, `osx-arm64`, `osx-x64`, `linux-x64`, and `linux-arm64`
-- generate update packages (`.nupkg`) plus platform installers/bundles
+- generate Velopack update packages (`.nupkg`) plus platform installers/bundles
+- keep each channel manifest (`releases.{channel}.json`) scoped to the current release version
 - publish all assets to the matching GitHub Release for that tag
 
 The app checks GitHub Releases for updates on startup and then again on the interval configured in [appsettings.json](src/MediaBitrateViewer.App/appsettings.json).
 
 For release builds, the workflow version is authoritative. The tag or manual workflow input version is passed into both `dotnet publish` and Velopack packaging, so it becomes the shipped app version and the update version. The `<Version>` in the `.csproj` is only the local/default fallback for non-release builds.
+
+### Manual release workflow
+
+If you trigger `Release` manually, provide the version without the leading `v`.
+
+- If `publish_release` is `false`, GitHub creates a draft release.
+- If `publish_release` is `true`, GitHub publishes the release immediately.
 
 ## Loading a file
 
