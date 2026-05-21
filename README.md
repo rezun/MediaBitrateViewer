@@ -6,7 +6,7 @@ Useful for checking encoder output, spotting bitrate spikes, comparing CBR vs. V
 
 ## Built with AI
 
-This project was developed using Claude Code. Most of the code was written by Claude; decisions, review, and direction are mine.
+This project was developed with AI assistance. Most of the code was written using AI tools; decisions, review, and direction are mine.
 
 ## Requirements
 
