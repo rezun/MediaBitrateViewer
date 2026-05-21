@@ -14,6 +14,17 @@ This project was developed using Claude Code. Most of the code was written by Cl
 - [.NET 10 runtime](https://dotnet.microsoft.com/)
 - **ffprobe** (from [FFmpeg](https://ffmpeg.org/)) on your `PATH` — the app uses it to read frame metadata. You'll see a clear error message if it's missing.
 
+## Download
+
+Latest release installers:
+
+| Platform | Windows | macOS | Linux |
+| -------- | ------- | ----- | ----- |
+| x64 | [Setup.exe](https://github.com/rezun/MediaBitrateViewer/releases/latest/download/MediaBitrateViewer-win-x64-Setup.exe) | [Setup.pkg](https://github.com/rezun/MediaBitrateViewer/releases/latest/download/MediaBitrateViewer-osx-x64-Setup.pkg) | [AppImage](https://github.com/rezun/MediaBitrateViewer/releases/latest/download/MediaBitrateViewer-linux-x64.AppImage) |
+| ARM64 | [Setup.exe](https://github.com/rezun/MediaBitrateViewer/releases/latest/download/MediaBitrateViewer-win-arm64-Setup.exe) | [Setup.pkg](https://github.com/rezun/MediaBitrateViewer/releases/latest/download/MediaBitrateViewer-osx-arm64-Setup.pkg) | [AppImage](https://github.com/rezun/MediaBitrateViewer/releases/latest/download/MediaBitrateViewer-linux-arm64.AppImage) |
+
+Portable builds and update packages are available on the [latest release page](https://github.com/rezun/MediaBitrateViewer/releases/latest).
+
 ## Running
 
 From the repo root:
