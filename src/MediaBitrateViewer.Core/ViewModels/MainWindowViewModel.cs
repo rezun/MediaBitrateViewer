@@ -689,6 +689,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IAsyncInitializ
 
     private void ResetSeries()
     {
+        IsPartialData = false;
         _frames.Clear();
         _sortedFrames = null;
         _series = Array.Empty<BitratePoint>();

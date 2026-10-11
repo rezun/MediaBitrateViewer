@@ -65,6 +65,42 @@ public sealed class FrameAnalysisServiceIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task AviWithoutPacketPts_AnalyzesAllPacketsUsingDts()
+    {
+        if (!File.Exists(_videoPath)) return;
+        var aviPath = Path.Combine(_dir, "test.avi");
+        var psi = new ProcessStartInfo("ffmpeg")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        foreach (var argument in new[] { "-v", "error", "-y", "-i", _videoPath, "-c:v", "copy", aviPath })
+            psi.ArgumentList.Add(argument);
+        using var process = Process.Start(psi) ?? throw new InvalidOperationException("Could not start ffmpeg");
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        await stdout;
+        Assert.True(process.ExitCode == 0, await stderr);
+
+        var analyzer = new FrameAnalysisService(NullLogger<FrameAnalysisService>.Instance);
+        var packets = new List<FrameRecord>();
+        await foreach (var packet in analyzer.AnalyzeAsync(aviPath, 0, CancellationToken.None))
+            packets.Add(packet);
+
+        Assert.Equal(50, packets.Count);
+        Assert.All(packets, packet =>
+        {
+            Assert.True(double.IsFinite(packet.TimestampSeconds));
+            Assert.True(packet.DurationSeconds > 0);
+            Assert.True(packet.PacketSizeBytes > 0);
+        });
+        Assert.True(packets[^1].TimestampSeconds - packets[0].TimestampSeconds > 1.9);
+    }
+
+    [Fact]
     public async Task ProbeAndAnalyze_RealSyntheticVideo()
     {
         if (!File.Exists(_videoPath))

@@ -42,6 +42,7 @@ internal sealed record ProbeCacheEntry
 
 internal sealed record FrameManifest
 {
+    public required string FramesFileName { get; init; }
     public required string CacheVersion { get; init; }
     public required FileFingerprint Fingerprint { get; init; }
     public required int StreamIndex { get; init; }

@@ -7,7 +7,9 @@ namespace MediaBitrateViewer.Infrastructure.Cache;
 
 public sealed class AnalysisCache : IAnalysisCache
 {
-    public const string CacheVersion = "v2";
+    // v3 invalidates empty packet analyses produced before the DTS fallback and
+    // publishes immutable frame files through an atomic manifest replacement.
+    public const string CacheVersion = "v3";
     private const string ProbeFileName = "probe.json";
 
     private readonly string _rootDirectory;
@@ -34,9 +36,6 @@ public sealed class AnalysisCache : IAnalysisCache
     private string ManifestPath(FileFingerprint fp, int streamIndex) =>
         Path.Combine(FileDirectory(fp), $"stream-{streamIndex}.manifest.json");
 
-    private string FramesPath(FileFingerprint fp, int streamIndex) =>
-        Path.Combine(FileDirectory(fp), $"stream-{streamIndex}.frames.bin");
-
     public async ValueTask<ProbedMediaFile?> TryGetProbeAsync(FileFingerprint fingerprint, CancellationToken cancellationToken)
     {
         var path = ProbePath(fingerprint);
@@ -44,14 +43,14 @@ public sealed class AnalysisCache : IAnalysisCache
 
         try
         {
-            await using var stream = File.OpenRead(path);
+            await using var stream = OpenManifest(path);
             var dto = await JsonSerializer.DeserializeAsync<ProbeCacheEntry>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
-            return dto?.ToDomain();
+            return dto is not null && dto.Fingerprint.Equals(fingerprint)
+                && string.Equals(dto.CacheVersion, CacheVersion, StringComparison.Ordinal) ? dto.ToDomain() : null;
         }
         catch (Exception ex) when (ex is JsonException or IOException)
         {
             _logger.LogWarning(ex, "Discarding unreadable probe cache at {Path}", path);
-            try { File.Delete(path); } catch { /* best effort */ }
             return null;
         }
     }
@@ -64,12 +63,19 @@ public sealed class AnalysisCache : IAnalysisCache
         var path = ProbePath(probe.Fingerprint);
 
         var dto = ProbeCacheEntry.From(probe);
-        var tmp = path + ".tmp";
-        await using (var stream = File.Create(tmp))
+        var tmp = path + $".{Guid.NewGuid():N}.tmp";
+        try
         {
-            await JsonSerializer.SerializeAsync(stream, dto, JsonOptions, cancellationToken).ConfigureAwait(false);
+            await using (var stream = File.Create(tmp))
+            {
+                await JsonSerializer.SerializeAsync(stream, dto, JsonOptions, cancellationToken).ConfigureAwait(false);
+            }
+            File.Move(tmp, path, overwrite: true);
         }
-        File.Move(tmp, path, overwrite: true);
+        finally
+        {
+            DeleteTemporaryFile(tmp);
+        }
     }
 
     public async ValueTask<CachedFrameAnalysis?> TryGetCompleteFrameAnalysisAsync(
@@ -78,14 +84,13 @@ public sealed class AnalysisCache : IAnalysisCache
         CancellationToken cancellationToken)
     {
         var manifestPath = ManifestPath(fingerprint, videoStreamIndex);
-        var framesPath = FramesPath(fingerprint, videoStreamIndex);
-        if (!File.Exists(manifestPath) || !File.Exists(framesPath))
+        if (!File.Exists(manifestPath))
             return null;
 
         FrameManifest? manifest;
         try
         {
-            await using var ms = File.OpenRead(manifestPath);
+            await using var ms = OpenManifest(manifestPath);
             manifest = await JsonSerializer.DeserializeAsync<FrameManifest>(ms, JsonOptions, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is JsonException or IOException)
@@ -100,15 +105,21 @@ public sealed class AnalysisCache : IAnalysisCache
             return null;
         if (!manifest.Fingerprint.Equals(fingerprint))
             return null;
+        if (manifest.StreamIndex != videoStreamIndex || manifest.FrameCount <= 0
+            || string.IsNullOrEmpty(manifest.FramesFileName)
+            || !string.Equals(Path.GetFileName(manifest.FramesFileName), manifest.FramesFileName, StringComparison.Ordinal)
+            || manifest.FramesFileName.IndexOfAny(['/', '\\']) >= 0)
+            return null;
 
         try
         {
-            var frames = await FrameBinarySerializer.ReadAllAsync(framesPath, cancellationToken).ConfigureAwait(false);
+            var framesPath = Path.Combine(FileDirectory(fingerprint), manifest.FramesFileName);
+            var frames = await FrameBinarySerializer.ReadAllAsync(framesPath, manifest.FrameCount, cancellationToken).ConfigureAwait(false);
             return new CachedFrameAnalysis(fingerprint, videoStreamIndex, frames, manifest.UpdatedAt);
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException)
         {
-            _logger.LogWarning(ex, "Discarding unreadable frames cache at {Path}", framesPath);
+            _logger.LogWarning(ex, "Discarding unreadable frames cache for {Path}", manifestPath);
             return null;
         }
     }
@@ -120,10 +131,22 @@ public sealed class AnalysisCache : IAnalysisCache
         Directory.CreateDirectory(dir);
         return new FrameCacheWriter(
             ManifestPath(fingerprint, videoStreamIndex),
-            FramesPath(fingerprint, videoStreamIndex),
             fingerprint,
             videoStreamIndex,
-            timeProvider);
+            timeProvider,
+            _logger);
+    }
+
+    private static FileStream OpenManifest(string path) =>
+        new(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 4096, useAsync: true);
+
+    private void DeleteTemporaryFile(string path)
+    {
+        try { File.Delete(path); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(ex, "Could not remove temporary cache file {Path}", path);
+        }
     }
 
     public ValueTask ClearFileAsync(FileFingerprint fingerprint)

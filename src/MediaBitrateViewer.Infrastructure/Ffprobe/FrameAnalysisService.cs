@@ -44,7 +44,7 @@ public sealed class FrameAnalysisService : IFrameAnalysisService
         psi.ArgumentList.Add("-select_streams");
         psi.ArgumentList.Add(videoStreamIndex.ToString(CultureInfo.InvariantCulture));
         psi.ArgumentList.Add("-show_entries");
-        psi.ArgumentList.Add("packet=pts_time,duration_time,size");
+        psi.ArgumentList.Add("packet=pts_time,dts_time,duration_time,size");
         psi.ArgumentList.Add("-of");
         psi.ArgumentList.Add("csv=p=0");
         psi.ArgumentList.Add(filePath);
@@ -53,13 +53,13 @@ public sealed class FrameAnalysisService : IFrameAnalysisService
             ?? throw new InvalidOperationException("Failed to start ffprobe process");
 
         var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        long packetCount = 0;
+        var reader = PipeReader.Create(process.StandardOutput.BaseStream);
 
         try
         {
             // Read raw bytes from stdout via a pipe and parse line-by-line in UTF-8 with
             // zero managed-string allocations per packet (Utf8Parser on byte spans).
-            var reader = PipeReader.Create(process.StandardOutput.BaseStream);
-
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -69,21 +69,25 @@ public sealed class FrameAnalysisService : IFrameAnalysisService
                 while (TryReadLine(ref buffer, out var line))
                 {
                     if (TryParsePacketLine(in line, out var record))
+                    {
+                        packetCount++;
                         yield return record;
+                    }
                 }
 
                 if (result.IsCompleted)
                 {
                     if (!buffer.IsEmpty && TryParsePacketLine(in buffer, out var record))
+                    {
+                        packetCount++;
                         yield return record;
+                    }
                     reader.AdvanceTo(buffer.End);
                     break;
                 }
 
                 reader.AdvanceTo(buffer.Start, buffer.End);
             }
-
-            await reader.CompleteAsync().ConfigureAwait(false);
 
             await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
             var stderr = await stderrTask.ConfigureAwait(false);
@@ -92,9 +96,12 @@ public sealed class FrameAnalysisService : IFrameAnalysisService
                 _logger.LogError("ffprobe -show_packets exited with {ExitCode}: {Stderr}", process.ExitCode, stderr);
                 throw new FrameAnalysisException($"ffprobe failed with exit code {process.ExitCode}: {stderr.Trim()}");
             }
+            if (packetCount == 0)
+                throw new FrameAnalysisException("No video packets with usable timestamps were found.");
         }
         finally
         {
+            await reader.CompleteAsync().ConfigureAwait(false);
             if (!process.HasExited)
             {
                 try { process.Kill(entireProcessTree: true); }
@@ -135,7 +142,7 @@ public sealed class FrameAnalysisService : IFrameAnalysisService
         return TryParsePacketLine(tmp, out frame);
     }
 
-    private static bool TryParsePacketLine(ReadOnlySpan<byte> line, out FrameRecord frame)
+    internal static bool TryParsePacketLine(ReadOnlySpan<byte> line, out FrameRecord frame)
     {
         frame = default;
 
@@ -144,19 +151,23 @@ public sealed class FrameAnalysisService : IFrameAnalysisService
             line = line[..^1];
         if (line.IsEmpty) return false;
 
-        // Expected: pts_time,duration_time,size
+        // ffprobe emits fields in its canonical order: PTS, DTS, duration, size.
         var c1 = line.IndexOf((byte)',');
         if (c1 < 0) return false;
         var rest = line[(c1 + 1)..];
         var c2 = rest.IndexOf((byte)',');
         if (c2 < 0) return false;
+        var tail = rest[(c2 + 1)..];
+        var c3 = tail.IndexOf((byte)',');
+        if (c3 < 0) return false;
 
         var ptsSpan = line[..c1];
-        var durSpan = rest[..c2];
-        var sizeSpan = rest[(c2 + 1)..];
-
-        if (!Utf8Parser.TryParse(ptsSpan, out double pts, out _))
-            return false;
+        var dtsSpan = rest[..c2];
+        var durSpan = tail[..c3];
+        var sizeSpan = tail[(c3 + 1)..];
+        // MPEG-TS can append packet side data after the size field.
+        var sideData = sizeSpan.IndexOf((byte)',');
+        if (sideData >= 0) sizeSpan = sizeSpan[..sideData];
 
         // duration_time may be N/A on some codec/container combinations; let
         // EffectiveDurationResolver backfill from timestamp deltas downstream.
@@ -164,15 +175,24 @@ public sealed class FrameAnalysisService : IFrameAnalysisService
         if (!durSpan.SequenceEqual(NotAvailable))
             Utf8Parser.TryParse(durSpan, out dur, out _);
 
-        if (!Utf8Parser.TryParse(sizeSpan, out int size, out _))
+        if (!Utf8Parser.TryParse(sizeSpan, out int size, out var sizeConsumed) || sizeConsumed != sizeSpan.Length || size <= 0)
             return false;
+
+        // AVI commonly has no packet PTS. DTS still provides the packet timeline;
+        // preserve PTS whenever available so B-frame presentation order is retained.
+        if (!TryParseTimestamp(ptsSpan, out var timestamp) && !TryParseTimestamp(dtsSpan, out timestamp))
+            throw new FrameAnalysisException("A video packet has neither a usable PTS nor DTS timestamp.");
 
         frame = new FrameRecord
         {
-            TimestampSeconds = pts,
+            TimestampSeconds = timestamp,
             DurationSeconds = dur,
             PacketSizeBytes = size
         };
         return true;
     }
+
+    private static bool TryParseTimestamp(ReadOnlySpan<byte> value, out double timestamp) =>
+        Utf8Parser.TryParse(value, out timestamp, out var consumed)
+        && consumed == value.Length && double.IsFinite(timestamp);
 }

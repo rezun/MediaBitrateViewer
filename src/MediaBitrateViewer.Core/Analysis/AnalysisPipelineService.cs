@@ -86,6 +86,9 @@ public sealed class AnalysisPipelineService : IAnalysisPipelineService
                 await observer.OnFrameAsync(frame, frameCount, cancellationToken).ConfigureAwait(false);
             }
 
+            if (frameCount == 0)
+                throw new FrameAnalysisException("No video packets were analyzed.");
+
             await writer.MarkCompleteAsync(CancellationToken.None).ConfigureAwait(false);
             return new FrameAnalysisResult(FrameAnalysisOutcome.Completed, frameCount);
         }

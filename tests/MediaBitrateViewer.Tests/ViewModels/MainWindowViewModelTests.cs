@@ -6,6 +6,49 @@ namespace MediaBitrateViewer.Tests.ViewModels;
 
 public sealed class MainWindowViewModelTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StreamSwitch_AfterCancellation_ClearsPartialDataFlag(bool cached)
+    {
+        var harness = new MainWindowViewModelHarness();
+        var hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        harness.Frames.HoldAfterFirstFrame = hold.Task;
+        var fingerprint = await harness.Fingerprint.ComputeAsync("/tmp/sample.mp4", CancellationToken.None);
+        if (cached)
+        {
+            harness.Cache.SeedCompletedFrameAnalysis(fingerprint, 1,
+                [new FrameRecord { TimestampSeconds = 0, DurationSeconds = 0.04, PacketSizeBytes = 2000 }]);
+        }
+        await using var vm = harness.Build();
+        await vm.InitializeAsync(CancellationToken.None);
+        await vm.LoadFileAsync("/tmp/sample.mp4");
+        await harness.Frames.FirstFrameEmitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        vm.CancelAnalysisCommand.Execute(null);
+        await MainWindowViewModelHarness.WaitForStatusAsync(vm, WorkflowStatus.FrameAnalysisCanceled);
+        Assert.True(vm.IsPartialData);
+
+        harness.Frames.HoldAfterFirstFrame = null;
+        vm.SelectedStream = vm.VideoStreams[1];
+        await MainWindowViewModelHarness.WaitForStatusAsync(vm, WorkflowStatus.Ready);
+        Assert.False(vm.IsPartialData);
+        Assert.NotEmpty(vm.Frames);
+    }
+
+    [Fact]
+    public async Task EmptyAnalysis_IsReportedAsFailureAndNotCached()
+    {
+        var harness = new MainWindowViewModelHarness();
+        harness.Frames.FramesToEmit = 0;
+        await using var vm = harness.Build();
+        await vm.InitializeAsync(CancellationToken.None);
+        await vm.LoadFileAsync("/tmp/sample.mp4");
+        await MainWindowViewModelHarness.WaitForStatusAsync(vm, WorkflowStatus.FrameAnalysisFailed);
+        Assert.Contains("No video packets", vm.ErrorMessage, StringComparison.Ordinal);
+        var fingerprint = await harness.Fingerprint.ComputeAsync("/tmp/sample.mp4", CancellationToken.None);
+        Assert.Null(await harness.Cache.TryGetCompleteFrameAnalysisAsync(fingerprint, 0, CancellationToken.None));
+    }
+
     [Fact]
     public async Task Initialize_FfprobeMissing_SetsBlockingState()
     {

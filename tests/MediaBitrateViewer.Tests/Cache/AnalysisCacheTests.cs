@@ -1,6 +1,7 @@
 using MediaBitrateViewer.Core.Models;
 using MediaBitrateViewer.Infrastructure.Cache;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text.Json;
 
 namespace MediaBitrateViewer.Tests.Cache;
 
@@ -123,4 +124,129 @@ public sealed class AnalysisCacheTests : IDisposable
         var differentFp = new FileFingerprint(2048, DateTimeOffset.UnixEpoch, "CCCC", "DDDD");
         Assert.Null(await _cache.TryGetProbeAsync(differentFp, CancellationToken.None));
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(20)]
+    [InlineData(39)]
+    [InlineData(60)]
+    public async Task CompleteCache_WithWrongFileLength_IsRejected(int length)
+    {
+        await using (var writer = _cache.BeginFrameAnalysis(_fingerprint, 0, TimeProvider.System))
+        {
+            await writer.AppendAsync(Packet(1000), CancellationToken.None);
+            await writer.AppendAsync(Packet(2000), CancellationToken.None);
+            await writer.MarkCompleteAsync(CancellationToken.None);
+        }
+        var path = Directory.GetFiles(_root, "*.frames.bin", SearchOption.AllDirectories).Single();
+        using (var stream = File.OpenWrite(path)) stream.SetLength(length);
+
+        Assert.Null(await _cache.TryGetCompleteFrameAnalysisAsync(_fingerprint, 0, CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConcurrentIncompleteWriter_DoesNotInvalidateCompletedAnalysis(bool fail)
+    {
+        await using (var first = _cache.BeginFrameAnalysis(_fingerprint, 0, TimeProvider.System))
+        await using (var second = _cache.BeginFrameAnalysis(_fingerprint, 0, TimeProvider.System))
+        {
+            await first.AppendAsync(Packet(1000), CancellationToken.None);
+            await second.AppendAsync(Packet(2000), CancellationToken.None);
+            await first.MarkCompleteAsync(CancellationToken.None);
+            var during = await _cache.TryGetCompleteFrameAnalysisAsync(_fingerprint, 0, CancellationToken.None);
+            Assert.NotNull(during);
+            Assert.Equal(1000, Assert.Single(during.Frames).PacketSizeBytes);
+
+            if (fail) await second.MarkFailedAsync("test failure");
+            else await second.MarkCanceledAsync();
+        }
+
+        var after = await _cache.TryGetCompleteFrameAnalysisAsync(_fingerprint, 0, CancellationToken.None);
+        Assert.NotNull(after);
+        Assert.Equal(1000, Assert.Single(after.Frames).PacketSizeBytes);
+        Assert.Empty(Directory.GetFiles(_root, "*.tmp", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task ConcurrentCompleteWriters_PublishConsistentSnapshots()
+    {
+        await using var first = _cache.BeginFrameAnalysis(_fingerprint, 0, TimeProvider.System);
+        await using var second = _cache.BeginFrameAnalysis(_fingerprint, 0, TimeProvider.System);
+        await first.AppendAsync(Packet(1000), CancellationToken.None);
+        await second.AppendAsync(Packet(2000), CancellationToken.None);
+        await second.AppendAsync(Packet(2000), CancellationToken.None);
+        await Task.WhenAll(
+            first.MarkCompleteAsync(CancellationToken.None).AsTask(),
+            second.MarkCompleteAsync(CancellationToken.None).AsTask());
+
+        var result = await _cache.TryGetCompleteFrameAnalysisAsync(_fingerprint, 0, CancellationToken.None);
+        Assert.NotNull(result);
+        var expectedSize = result.Frames.Count == 1 ? 1000 : 2000;
+        Assert.InRange(result.Frames.Count, 1, 2);
+        Assert.All(result.Frames, packet => Assert.Equal(expectedSize, packet.PacketSizeBytes));
+    }
+
+    [Fact]
+    public async Task EmptyAnalysis_CannotBePublishedAsComplete()
+    {
+        await using var writer = _cache.BeginFrameAnalysis(_fingerprint, 0, TimeProvider.System);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => writer.MarkCompleteAsync(CancellationToken.None).AsTask());
+        Assert.Null(await _cache.TryGetCompleteFrameAnalysisAsync(_fingerprint, 0, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task CanceledPublication_PreservesPreviousCompleteCache()
+    {
+        await using (var first = _cache.BeginFrameAnalysis(_fingerprint, 0, TimeProvider.System))
+        {
+            await first.AppendAsync(Packet(1000), CancellationToken.None);
+            await first.MarkCompleteAsync(CancellationToken.None);
+        }
+        await using (var replacement = _cache.BeginFrameAnalysis(_fingerprint, 0, TimeProvider.System))
+        {
+            await replacement.AppendAsync(Packet(2000), CancellationToken.None);
+            using var cts = new CancellationTokenSource();
+            await cts.CancelAsync();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => replacement.MarkCompleteAsync(cts.Token).AsTask());
+            await replacement.MarkCanceledAsync();
+        }
+
+        var result = await _cache.TryGetCompleteFrameAnalysisAsync(_fingerprint, 0, CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.Equal(1000, Assert.Single(result.Frames).PacketSizeBytes);
+        Assert.Empty(Directory.GetFiles(_root, "*.tmp", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task ConcurrentProbeWrites_DoNotShareTemporaryFiles()
+    {
+        var first = MakeProbe();
+        var second = first with { FilePath = "/tmp/other.mp4" };
+        await Task.WhenAll(
+            _cache.SaveProbeAsync(first, CancellationToken.None).AsTask(),
+            _cache.SaveProbeAsync(second, CancellationToken.None).AsTask());
+        Assert.NotNull(await _cache.TryGetProbeAsync(_fingerprint, CancellationToken.None));
+        Assert.Empty(Directory.GetFiles(_root, "*.tmp", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task ManifestForWrongStream_IsRejected()
+    {
+        await using (var writer = _cache.BeginFrameAnalysis(_fingerprint, 0, TimeProvider.System))
+        {
+            await writer.AppendAsync(Packet(1000), CancellationToken.None);
+            await writer.MarkCompleteAsync(CancellationToken.None);
+        }
+        var path = Directory.GetFiles(_root, "*.manifest.json", SearchOption.AllDirectories).Single();
+        var manifest = JsonSerializer.Deserialize<FrameManifest>(await File.ReadAllTextAsync(path))
+            ?? throw new InvalidDataException("Missing manifest");
+        await File.WriteAllTextAsync(path, JsonSerializer.Serialize(manifest with { StreamIndex = 1 }));
+
+        Assert.Null(await _cache.TryGetCompleteFrameAnalysisAsync(_fingerprint, 0, CancellationToken.None));
+    }
+
+    private static FrameRecord Packet(int size) =>
+        new() { TimestampSeconds = 0, DurationSeconds = 0.04, PacketSizeBytes = size };
 }

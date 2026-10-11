@@ -233,6 +233,7 @@ internal sealed class FakePrefsStore : IUserPreferencesStore
 
 internal sealed class FakeThemeService : IThemeService
 {
+    public int SubscriberCount => AppliedThemeChanged?.GetInvocationList().Length ?? 0;
     public ThemeMode CurrentMode { get; private set; } = ThemeMode.System;
     public AppliedTheme AppliedTheme { get; private set; } = AppliedTheme.Light;
     public event EventHandler<AppliedTheme>? AppliedThemeChanged;

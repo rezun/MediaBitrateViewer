@@ -34,7 +34,7 @@ internal static class FrameBinarySerializer
         };
     }
 
-    public static async ValueTask<IReadOnlyList<FrameRecord>> ReadAllAsync(string path, CancellationToken cancellationToken)
+    public static async ValueTask<IReadOnlyList<FrameRecord>> ReadAllAsync(string path, long expectedCount, CancellationToken cancellationToken)
     {
         await using var stream = new FileStream(
             path, FileMode.Open, FileAccess.Read, FileShare.Read,
@@ -43,11 +43,13 @@ internal static class FrameBinarySerializer
         var length = stream.Length;
         if (length % RecordSize != 0)
             throw new InvalidDataException("Frame stream length not aligned to record size");
+        if (expectedCount <= 0 || expectedCount > Array.MaxLength || length / RecordSize != expectedCount)
+            throw new InvalidDataException("Frame stream length does not match the manifest count");
 
         var count = (int)(length / RecordSize);
         var frames = new FrameRecord[count];
 
-        var buffer = new byte[Math.Min(64 * 1024, (int)length)];
+        var buffer = new byte[(int)Math.Min(64 * 1024, length)];
         var offset = 0;
         var index = 0;
         while (true)
@@ -60,6 +62,7 @@ internal static class FrameBinarySerializer
             var consumed = 0;
             while (available - consumed >= RecordSize)
             {
+                if (index == count) throw new InvalidDataException("Frame stream grew while reading");
                 frames[index++] = Read(buffer.AsSpan(consumed, RecordSize));
                 consumed += RecordSize;
             }
