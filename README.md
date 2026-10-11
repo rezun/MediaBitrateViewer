@@ -46,6 +46,7 @@ The `main` branch is protected with required CI, linear history, and no force-pu
 
 Push a semver tag such as `v1.2.3` and GitHub Actions will:
 
+- run the CI build and tests before packaging; failed tests stop the release
 - build self-contained Velopack releases for `win-x64`, `win-arm64`, `osx-arm64`, `osx-x64`, `linux-x64`, and `linux-arm64`
 - generate Velopack update packages (`.nupkg`) plus platform installers/bundles
 - keep each channel manifest (`releases.{channel}.json`) scoped to the current release version
