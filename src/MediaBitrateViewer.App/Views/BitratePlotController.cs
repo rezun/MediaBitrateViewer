@@ -4,6 +4,8 @@ using MediaBitrateViewer.Core.Analysis;
 using MediaBitrateViewer.Core.Models;
 using ScottPlot;
 using ScottPlot.Avalonia;
+using ScottPlot.Interactivity;
+using ScottPlot.Interactivity.UserActionResponses;
 using ScottPlot.Plottables;
 
 namespace MediaBitrateViewer.App.Views;
@@ -33,6 +35,13 @@ public sealed class BitratePlotController
     {
         ArgumentNullException.ThrowIfNull(plot);
         _plot = plot;
+        var input = _plot.UserInputProcessor;
+        input.RemoveAll<MouseDragZoomRectangle>();
+        input.RemoveAll<MouseDragPan>();
+        input.RemoveAll<SingleClickAutoscale>();
+        input.DoubleLeftClickBenchmark(false);
+        input.UserActionResponses.Insert(0, new HorizontalRangeZoomResponse(() => _seriesCount > 0));
+        input.UserActionResponses.Add(new MouseDragPan(StandardMouseButtons.Middle) { LockY = true });
     }
 
     public int SeriesCount => _seriesCount;
@@ -124,6 +133,7 @@ public sealed class BitratePlotController
 
     public void ResetSeries()
     {
+        CancelSelection();
         if (_scatter is not null)
         {
             _plot.Plot.Remove(_scatter);
@@ -159,6 +169,7 @@ public sealed class BitratePlotController
     /// </summary>
     public void ResetViewport(double? knownDurationSeconds, VisibleTimeRange fallback)
     {
+        CancelSelection();
         _yZoomLevel = 1.0;
 
         if (knownDurationSeconds is { } duration && duration > 0)
@@ -207,6 +218,8 @@ public sealed class BitratePlotController
     }
 
     public void Refresh() => _plot.Refresh();
+
+    public void CancelSelection() => UserInputProcessor.ResetState(_plot);
 
     private void ApplyXAxisFromData(double? knownDurationSeconds)
     {

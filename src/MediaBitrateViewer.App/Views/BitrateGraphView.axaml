@@ -4,7 +4,11 @@
              xmlns:vm="clr-namespace:MediaBitrateViewer.Core.ViewModels;assembly=MediaBitrateViewer.Core"
              x:Class="MediaBitrateViewer.App.Views.BitrateGraphView"
              x:DataType="vm:MainWindowViewModel">
-    <Grid>
+    <Grid RowDefinitions="*,Auto">
         <scottplot:AvaPlot x:Name="Plot" />
+        <TextBlock Grid.Row="1" Margin="12,4,12,8"
+                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                   Text="Drag to zoom X · Middle-drag to pan · Scroll to zoom · Double-click to reset"
+                   IsVisible="{Binding HasFile}" />
     </Grid>
 </UserControl>

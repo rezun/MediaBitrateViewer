@@ -89,7 +89,9 @@ For rolling average and peak envelope, pick a window size between 500 ms and 10 
 ### Navigation
 
 - **Scroll wheel** — zoom in/out around the cursor (X-axis)
-- **Click and drag** — pan horizontally
+- **Left-click and drag** — select a time range and zoom the X-axis on release; the Y-axis stays unchanged
+- **Middle-click and drag** — pan horizontally
+- **Escape** — cancel an active range selection
 - **Double-click** or **Reset Zoom** / **Ctrl/Cmd+0** — fit everything back in view
 - **Hover** — a red guide line tracks your cursor and updates the readout in real time
 

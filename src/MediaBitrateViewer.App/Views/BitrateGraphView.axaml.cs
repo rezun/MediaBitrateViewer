@@ -27,6 +27,7 @@ public partial class BitrateGraphView : UserControl
         Plot.PointerMoved += OnPlotPointerMoved;
         Plot.PointerExited += OnPlotPointerExited;
         Plot.DoubleTapped += OnPlotDoubleTapped;
+        Plot.PointerCaptureLost += OnPlotPointerCaptureLost;
 
         _controller.ApplyChrome(CurrentVariant());
     }
@@ -51,6 +52,7 @@ public partial class BitrateGraphView : UserControl
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _isAttached = false;
+        _controller.CancelSelection();
         // ScottPlot exposes a non-null delegate property rather than a C# event.
         Plot.Plot.RenderManager.AxisLimitsChanged =
             Plot.Plot.RenderManager.AxisLimitsChanged - OnAxisLimitsChanged ?? ((_, _) => { });
@@ -171,6 +173,12 @@ public partial class BitrateGraphView : UserControl
     private void OnPlotDoubleTapped(object? sender, TappedEventArgs e)
     {
         _vm?.ResetZoomCommand.Execute(null);
+    }
+
+    private void OnPlotPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        _controller.CancelSelection();
+        _controller.Refresh();
     }
 
     private void PublishVisibleRange()
